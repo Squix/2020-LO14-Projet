@@ -9,6 +9,10 @@ arbreB="tests/arbreB"
 #ls -R tests/arbreB| grep ":$" | sed -e 's/:$//' -e 's/[^-][^\/]*\//--/g' -e 's/^/   /' -e 's/-/|/'
 #find tests/arbreA
 
+#fonction qui synchronise un fichier b avec les données d'un fichier a (crée au passage les dossiers parents manquants)
+synchroAtoB() {
+	mkdir -p "$(dirname $2)" && cp --preserve "$1" "$2"
+}
 
 #fonction qui compare les fichiers
 compareFiles() {
@@ -44,13 +48,13 @@ compareFiles() {
 }
 
 
-#fonction de parcours récursive
+#fonction de parcours de l'arbreA récursive
 walk(){
 	local indent="${2:-0}"
 	#echo "$1"/*
 	#pour chaque élément du répertoire
 	for entry in "$1"/*; do
-	#si c'est un fichier on affiche son chemin
+	#si c'est un fichier on affiche son chemin
           if [[ -f "$entry" ]]; then
             printf "%*sF - %s\n" $indent '' "$entry"
 						compareFiles "$entry"
@@ -61,9 +65,6 @@ walk(){
           fi
         done
 }
+
+#lance la boucle principale
 walk "$arbreA"
-#dpnne le contenu d'un seul répertoire, utile quand les fichiers ne sont pas dans le même ordre
-#treeDirectory=$arbreA/*
-#for i in "${treeDirectory[@]}"; do
-#  echo $i
-#done
