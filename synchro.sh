@@ -57,7 +57,10 @@ walk(){
 	#si c'est un fichier on affiche son chemin
           if [[ -f "$entry" ]]; then
             printf "%*sF - %s\n" $indent '' "$entry"
-						compareFiles "$entry"
+						#teste la présence de conflits
+						if [[ $(compareFiles "$entry") == *"conflit"* ]]; then
+							synchroAtoB "$entry" "${entry/$arbreA/$arbreB}"
+						fi
           #s'il sagit d'un dossier, on affiche et on descend dedans
           elif [[ -d "$entry" ]]; then
             printf "%*sD - %s\n" $indent '' "$entry"
