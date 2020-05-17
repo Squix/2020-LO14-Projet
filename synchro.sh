@@ -69,5 +69,16 @@ walk(){
         done
 }
 
+log_write()
+{
+		#Si l'élément et un fichier, on ajoute f devant pour le représenter
+	if [[ -f "$1" ]]; then
+		printf "f %s \n" $1 >> log_temp
+				#Si l'élément et un dossier, on ajoute d devant pour le représenter
+	elif [[ -d "$1" ]]; then
+		printf "d %s \n" $1 >> log_temp
+ fi
+}
+
 #lance la boucle principale
 walk "$arbreA"
