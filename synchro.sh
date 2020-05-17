@@ -51,7 +51,6 @@ compareFiles() {
 #fonction de parcours de l'arbreA récursive
 walk(){
 	local indent="${2:-0}"
-	#echo "$1"/*
 	#pour chaque élément du répertoire
 	for entry in "$1"/*; do
 	#si c'est un fichier on affiche son chemin
@@ -72,7 +71,6 @@ walk(){
           fi
         done
 }
-
 log_write()
 {
 	#Si l'élément et un fichier, on ajoute f devant pour le représenter
@@ -83,7 +81,7 @@ elif [[ -d "$1" ]]; then
  fi
  echo $(stat -c '%A%s%y' $1) >> log_temp  #Que l'élément soit un fichier ou un dossier, on lui indique ses meta-données
 }
-log_merge()
+log_merge()			#On se débarasse du fichier log de lecture (log_temp) pour l'injecter dans le fichier log_file
 {
 	rm log_file
 	cp log_temp log_file
@@ -92,20 +90,20 @@ log_merge()
 }
 log_compare()
 {
-		if [[ $(grep -c "$1" log_file) -ne 0 ]]; then
+		if [[ $(grep -c "$1" log_file) -ne 0 ]]; then #On regarde si une ligne correspond au nom de l'élément courant
 			echo "present dans la DB"
-				if [[ -f "$1" ]]; then
+				if [[ -f "$1" ]]; then			#Selon si l'élément courant est une fichier ou un dossier, on lui donne la même structure que celle du fichier de log
 					currentFormatRecherche="f $1 $(stat -c '%A%s%y' $1)"
 				elif [[ -d "$1" ]]; then
 					currentFormatRecherche="d $1 $(stat -c '%A%s%y' $1)"
 				 fi
-			resultatDansBd=$(grep "$1 " log_file)
+			resultatDansBd=$(grep "$1 " log_file) #On récupère la ligne (théoriquement unique sans retouche manuelle) complète qui correspond à l'élément courant
 			if [[ "$currentFormatRecherche" == "$resultatDansBd" ]]; then
-				echo "correct"
+				echo "correct"   #Si les meta données concordent, on est bon
 			else
-				echo "ALERTE"
+				echo "ALERTE"		#Si les meta données ne sont pas concordes, ça pose problème
 			fi
-		else
+		else	#Si aucune ligne ne correspond au fichier, on le signale
 			echo "absent de la DB"
 		fi
 }
