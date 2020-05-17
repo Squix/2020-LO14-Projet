@@ -57,6 +57,7 @@ walk(){
 	#si c'est un fichier on affiche son chemin
           if [[ -f "$entry" ]]; then
             printf "%*sF - %s\n" $indent '' "$entry"
+						log_write $entry
 						#teste la présence de conflits
 						if [[ $(compareFiles "$entry") == *"conflit"* ]]; then
 							synchroAtoB "$entry" "${entry/$arbreA/$arbreB}"
@@ -64,6 +65,7 @@ walk(){
           #s'il sagit d'un dossier, on affiche et on descend dedans
           elif [[ -d "$entry" ]]; then
             printf "%*sD - %s\n" $indent '' "$entry"
+						log_write $entry
             walk "$entry" $((indent+4))
           fi
         done
@@ -71,14 +73,23 @@ walk(){
 
 log_write()
 {
-		#Si l'élément et un fichier, on ajoute f devant pour le représenter
-	if [[ -f "$1" ]]; then
-		printf "f %s \n" $1 >> log_temp
-				#Si l'élément et un dossier, on ajoute d devant pour le représenter
-	elif [[ -d "$1" ]]; then
-		printf "d %s \n" $1 >> log_temp
+	#Si l'élément et un fichier, on ajoute f devant pour le représenter
+if [[ -f "$1" ]]; then
+	printf "f %s " $1  >> log_temp  #On fait précéder le nom du fichier par la mention f (pour file) pour l'identifier
+			#Si l'élément et un dossier, on ajoute d devant pour le représenter
+elif [[ -d "$1" ]]; then
+	printf "d %s " $1 >> log_temp #idem avec un D pour directory
  fi
+ echo $(stat -c '%A%s%y' $1) >> log_temp
+}
+log_merge()
+{
+	rm log_file
+	cp log_temp log_file
+	wait
+	rm log_temp
 }
 
-#lance la boucle principale
+#lance la boucle
 walk "$arbreA"
+log_merge
