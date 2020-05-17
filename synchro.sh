@@ -57,6 +57,7 @@ walk(){
 	#si c'est un fichier on affiche son chemin
           if [[ -f "$entry" ]]; then
             printf "%*sF - %s\n" $indent '' "$entry"
+						log_compare $entry
 						log_write $entry
 						#teste la présence de conflits
 						if [[ $(compareFiles "$entry") == *"conflit"* ]]; then
@@ -65,6 +66,7 @@ walk(){
           #s'il sagit d'un dossier, on affiche et on descend dedans
           elif [[ -d "$entry" ]]; then
             printf "%*sD - %s\n" $indent '' "$entry"
+						log_compare $entry
 						log_write $entry
             walk "$entry" $((indent+4))
           fi
@@ -76,11 +78,10 @@ log_write()
 	#Si l'élément et un fichier, on ajoute f devant pour le représenter
 if [[ -f "$1" ]]; then
 	printf "f %s " $1  >> log_temp  #On fait précéder le nom du fichier par la mention f (pour file) pour l'identifier
-			#Si l'élément et un dossier, on ajoute d devant pour le représenter
 elif [[ -d "$1" ]]; then
 	printf "d %s " $1 >> log_temp #idem avec un D pour directory
  fi
- echo $(stat -c '%A%s%y' $1) >> log_temp
+ echo $(stat -c '%A%s%y' $1) >> log_temp  #Que l'élément soit un fichier ou un dossier, on lui indique ses meta-données
 }
 log_merge()
 {
@@ -89,7 +90,25 @@ log_merge()
 	wait
 	rm log_temp
 }
-
+log_compare()
+{
+		if [[ $(grep -c "$1" log_file) -ne 0 ]]; then
+			echo "present dans la DB"
+				if [[ -f "$1" ]]; then
+					currentFormatRecherche="f $1 $(stat -c '%A%s%y' $1)"
+				elif [[ -d "$1" ]]; then
+					currentFormatRecherche="d $1 $(stat -c '%A%s%y' $1)"
+				 fi
+			resultatDansBd=$(grep "$1 " log_file)
+			if [[ "$currentFormatRecherche" == "$resultatDansBd" ]]; then
+				echo "correct"
+			else
+				echo "ALERTE"
+			fi
+		else
+			echo "absent de la DB"
+		fi
+}
 #lance la boucle
 walk "$arbreA"
 log_merge
