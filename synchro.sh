@@ -46,8 +46,6 @@ compareFiles() {
 
 	echo $result
 }
-
-
 #fonction de parcours de l'arbreA récursive
 walk(){
 	local indent="${2:-0}"
