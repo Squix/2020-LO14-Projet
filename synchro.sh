@@ -51,7 +51,7 @@ walk(){
 	local indent="${2:-0}"
 	#pour chaque élément du répertoire
 	for entry in "$1"/*; do
-	#si c'est un fichier on affiche son chemin
+        	#si c'est un fichier on affiche son chemin
           if [[ -f "$entry" ]]; then
             printf "%*sF - %s\n" $indent '' "$entry"
 						log_compare $entry
@@ -117,7 +117,7 @@ log_conflict_management()			#Fonction permettant la création d'un menu de gesti
 	do
 			case $opt in
 					"Synchronisation selon l'arbre A")
-							return 1	
+							return 1
 							;;
 					"Synchronisation selon l'arbre B")
 							return 2
@@ -125,7 +125,7 @@ log_conflict_management()			#Fonction permettant la création d'un menu de gesti
 					"Annuler l'opération en cours (pas de sync)")
 							return 0
 							;;
-					*) echo "Saisie invalide, recommancez $REPLY";;
+					*) echo "Saisie invalide, recommencez $REPLY";;
 			esac
 	done
 }
