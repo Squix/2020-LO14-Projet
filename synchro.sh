@@ -14,8 +14,8 @@ arbreB="tests/arbreB"
 #ls -R tests/arbreB| grep ":$" | sed -e 's/:$//' -e 's/[^-][^\/]*\//--/g' -e 's/^/   /' -e 's/-/|/'
 #find tests/arbreA
 
-#fonction qui synchronise un fichier b avec les données d'un fichier a (crée au passage les dossiers parents manquants)
-synchroAtoB() {
+#fonction qui synchronise un fichier avec les données d'un fichier de référence (crée au passage les dossiers parents manquants)
+synchroReftoFile() {
 	mkdir -p "$(dirname $2)" && cp --preserve "$1" "$2"
 }
 
@@ -39,24 +39,6 @@ compareFiles() {
 
 			result="conflit;meta_diff"
 
-			#on trouve quel est le fichier conforme au journal
-
-			local conformiteA=$(log_compare "$entry")
-			local conformiteB=$(log_compare "$eq_arbreB")
-			echo "confA: $conformiteA confB: $conformiteB"
-
-			if [[ "$conformiteA" == "1" ]] && [[ "$conformiteB" == "2" ]]; then
-				#le fichier p/A est conforme
-				result="conflit;meta_diff;a"
-			elif [[ "$conformiteA" == "2" ]] && [[ "$conformiteB" == "1" ]]; then
-				#le fichier p/B est conforme
-			  result="conflit;meta_diff;b"
-			elif [[ "$conformiteA" == "0" ]] || [[ [["$conformiteA" == "2"]] && [["$conformiteB" == "2"]] ]]; then
-				result="conflit;meta_diff;journal_incorrect"
-			fi
-
-			#result="$conformiteA"
-
 		fi
 
 	elif [[ -d $eq_arbreB ]]; then
@@ -67,6 +49,22 @@ compareFiles() {
 		#le fichier n'existe pas
 		#echo "ERREUR - fichier inexistant !"
 		result="conflit;inexistant"
+	fi
+
+	#on trouve quel est le fichier conforme au journal
+
+	local conformiteA=$(log_compare "$entry")
+	local conformiteB=$(log_compare "$eq_arbreB")
+	echo "confA: $conformiteA confB: $conformiteB"
+
+	if [[ "$conformiteA" == "1" ]] && [[ "$conformiteB" == "2" ]]; then
+		#le fichier p/A est conforme
+		result+=";a"
+	elif [[ "$conformiteA" == "2" ]] && [[ "$conformiteB" == "1" ]]; then
+		#le fichier p/B est conforme
+		result+=";b"
+	elif [[ "$conformiteA" == "0" ]] || [[ [["$conformiteA" == "2"]] && [["$conformiteB" == "2"]] ]]; then
+		result+=";journal_incorrect"
 	fi
 
 	echo $result
@@ -86,7 +84,25 @@ walk(){
 						if [[ $compResult == *"conflit"* ]]; then
 
 							echo "$compResult"
-							#synchroAtoB "$entry" "${entry/$arbreA/$arbreB}"
+							#teste la présence d'un conflit de métadonnées
+							if [[ $compResult == *"meta_diff"* ]]; then
+
+								#si le fichier conforme est celui de l'arbre A
+								if [[ "${compResult##;}" == "a" ]]; then
+									#synchronize le fichier non conforme avec les données du fichier conforme
+									synchroReftoFile "$arbreA" "$eq_arbreB"
+									log_write $entry
+								fi
+
+
+							#teste la présence d'un conflit fichier/dossier
+						elif [[ $compResult == *"est_dossier"* ]]; then
+
+								echo "$compResult"
+
+
+							fi
+
 						fi
           #s'il sagit d'un dossier, on affiche et on descend dedans
           elif [[ -d "$entry" ]]; then
