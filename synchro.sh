@@ -1,8 +1,13 @@
 #!/usr/bin/env bash
-arbreA="tests/arbreA"
-arbreB="tests/arbreB"
+
+# ---------------------------
 # Projet final de LO14
 # Pour P20
+#----------------------------
+
+arbreA="tests/arbreA"
+arbreB="tests/arbreB"
+
 #Affiche la hieracrhie des sous-repoertoires
 #ls -R tests/arbreA | grep ":$" | sed -e 's/:$//' -e 's/[^-][^\/]*\//--/g' -e 's/^/   /' -e 's/-/|/'
 #Affiche la hieracrhie des sous-repoertoires
@@ -42,10 +47,12 @@ compareFiles() {
 
 			if [[ "$conformiteA" == "1" ]] && [[ "$conformiteB" == "2" ]]; then
 				#le fichier p/A est conforme
-				result="conflit;meta_diff;a conforme"
+				result="conflit;meta_diff;a"
 			elif [[ "$conformiteA" == "2" ]] && [[ "$conformiteB" == "1" ]]; then
 				#le fichier p/B est conforme
-			  result="conflit;meta_diff;b conforme"
+			  result="conflit;meta_diff;b"
+			elif [[ "$conformiteA" == "0" ]] || [[ [["$conformiteA" == "2"]] && [["$conformiteB" == "2"]] ]]; then
+				result="conflit;meta_diff;journal_incorrect"
 			fi
 
 			#result="$conformiteA"
@@ -91,14 +98,23 @@ walk(){
         done
 }
 
+#génère le chemin relatif du fichier à partir de son chemin absolu
+getFileRelativePath() {
+
+	local elemName_temp=${1/$arbreA/} #supprime le chemin absolu de arbreA
+	local elemName=${elemName_temp/$arbreB/} #supprime le chemin absolu de arbreB (pour que ça marche quelque soit le fichier passé en argument)
+	echo "$elemName"
+}
+
+# ---------------------------
+# FONCTIONS JOURNAL
+#----------------------------
+
 #écrit le fichier passé en argument dans le journal
 log_write()
 {
 
-	#génère le chemin relatif du fichier à partir de son chemin absolu
-	elemName_temp=${1/$arbreA/} #supprime le chemin absolu de arbreA
-	elemName=${elemName_temp/$arbreB/} #supprime le chemin absolu de arbreB (pour que ça marche quelque soit le fichier passé en argument)
-	echo "$elemName"
+	local elemName=$(getFileRelativePath "$1")
 
 	#Si l'élément et un fichier, on ajoute f devant pour le représenter
 	if [[ -f "$1" ]]; then
@@ -108,23 +124,30 @@ log_write()
 	 fi
 	 echo $(stat -c '%A%s%y' $1) >> log_temp  #Que l'élément soit un fichier ou un dossier, on lui indique ses meta-données
 }
-log_merge()			#On se débarasse du fichier log de lecture (log_temp) pour l'injecter dans le fichier log_file
+
+#se débarasse du fichier log de lecture (log_temp) pour l'injecter dans le fichier log_file
+log_merge()
 {
 	rm log_file
 	cp log_temp log_file
 	wait
 	rm log_temp
 }
+
+#compare les métadonnées d'un fichier passé en entrée aux métadonnées dudit fichier stockées dans le journal
 log_compare()
 {
-		if [[ $(grep -c "$1" log_file) -ne 0 ]]; then #On regarde si une ligne correspond au nom de l'élément courant
+
+		local elemName=$(getFileRelativePath "$1")
+
+		if [[ $(grep -c "$elemName" log_file) -ne 0 ]]; then #On regarde si une ligne correspond au nom de l'élément courant
 			# echo "present dans la DB"
 				if [[ -f "$1" ]]; then			#Selon si l'élément courant est un fichier ou un dossier, on lui donne la même structure que celle du fichier de log
-					currentFormatRecherche="f $1 $(stat -c '%A%s%y' $1)"
+					currentFormatRecherche="f $elemName $(stat -c '%A%s%y' $1)"
 				elif [[ -d "$1" ]]; then
-					currentFormatRecherche="d $1 $(stat -c '%A%s%y' $1)"
+					currentFormatRecherche="d $elemName $(stat -c '%A%s%y' $1)"
 				 fi
-			resultatDansBd=$(grep "$1 " log_file) #On récupère la ligne (théoriquement unique sans retouche manuelle) complète qui correspond à l'élément courant
+			resultatDansBd=$(grep "$elemName " log_file) #On récupère la ligne (théoriquement unique sans retouche manuelle) complète qui correspond à l'élément courant
 			if [[ "$currentFormatRecherche" == "$resultatDansBd" ]]; then
 				echo "1"   #Si les meta données concordent, on renvoie 1
 			else
@@ -134,6 +157,7 @@ log_compare()
 			echo "0"  #Si on ne retrouve aucune information sur l'élément dans le fichier log, on renvoie 0
 		fi
 }
+
 log_conflict_management()			#Fonction permettant la création d'un menu de gestion des conflits
 {
 	printf "\n"
@@ -158,6 +182,11 @@ log_conflict_management()			#Fonction permettant la création d'un menu de gesti
 			esac
 	done
 }
+
+# ---------------------------
+# BOUCLE PRINCIPALE
+#----------------------------
+
 #lance la boucle
 #log_conflict_management
 walk "$arbreA"
