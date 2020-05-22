@@ -31,7 +31,25 @@ compareFiles() {
 			result="ok"
 		else
 			#echo "le fichier existe, est un fichier mais ses meta sont différentes de celui de l'arbre B (meta)"
+
 			result="conflit;meta_diff"
+
+			#on trouve quel est le fichier conforme au journal
+
+			local conformiteA=$(log_compare "$entry")
+			local conformiteB=$(log_compare "$eq_arbreB")
+			echo "confA: $conformiteA confB: $conformiteB"
+
+			if [[ "$conformiteA" == "1" ]] && [[ "$conformiteB" == "2" ]]; then
+				#le fichier p/A est conforme
+				result="conflit;meta_diff;a conforme"
+			elif [[ "$conformiteA" == "2" ]] && [[ "$conformiteB" == "1" ]]; then
+				#le fichier p/B est conforme
+			  result="conflit;meta_diff;b conforme"
+			fi
+
+			#result="$conformiteA"
+
 		fi
 
 	elif [[ -d $eq_arbreB ]]; then
@@ -54,16 +72,19 @@ walk(){
         	#si c'est un fichier on affiche son chemin
           if [[ -f "$entry" ]]; then
             printf "%*sF - %s\n" $indent '' "$entry"
-						log_compare $entry
+						#log_compare $entry
 						log_write $entry
 						#teste la présence de conflits
-						if [[ $(compareFiles "$entry") == *"conflit"* ]]; then
-							synchroAtoB "$entry" "${entry/$arbreA/$arbreB}"
+						local compResult=$(compareFiles "$entry")
+						if [[ $compResult == *"conflit"* ]]; then
+
+							echo "$compResult"
+							#synchroAtoB "$entry" "${entry/$arbreA/$arbreB}"
 						fi
           #s'il sagit d'un dossier, on affiche et on descend dedans
           elif [[ -d "$entry" ]]; then
             printf "%*sD - %s\n" $indent '' "$entry"
-						log_compare $entry
+						#log_compare $entry
 						log_write $entry
             walk "$entry" $((indent+4))
           fi
@@ -90,19 +111,19 @@ log_compare()
 {
 		if [[ $(grep -c "$1" log_file) -ne 0 ]]; then #On regarde si une ligne correspond au nom de l'élément courant
 			# echo "present dans la DB"
-				if [[ -f "$1" ]]; then			#Selon si l'élément courant est une fichier ou un dossier, on lui donne la même structure que celle du fichier de log
+				if [[ -f "$1" ]]; then			#Selon si l'élément courant est un fichier ou un dossier, on lui donne la même structure que celle du fichier de log
 					currentFormatRecherche="f $1 $(stat -c '%A%s%y' $1)"
 				elif [[ -d "$1" ]]; then
 					currentFormatRecherche="d $1 $(stat -c '%A%s%y' $1)"
 				 fi
 			resultatDansBd=$(grep "$1 " log_file) #On récupère la ligne (théoriquement unique sans retouche manuelle) complète qui correspond à l'élément courant
 			if [[ "$currentFormatRecherche" == "$resultatDansBd" ]]; then
-				return 1   #Si les meta données concordent, on renvoie 1
+				echo "1"   #Si les meta données concordent, on renvoie 1
 			else
-				return 2		#Si les meta données ne sont pas concordes, on renvoie 2
+				echo "2"		#Si les meta données ne sont pas concordes, on renvoie 2
 			fi
 		else	#Si aucune ligne ne correspond au fichier, on le signale
-			return 0  #Si on ne retrouve aucune information sur l'élément dans le fichier log, on renvoie 0
+			echo "0"  #Si on ne retrouve aucune information sur l'élément dans le fichier log, on renvoie 0
 		fi
 }
 log_conflict_management()			#Fonction permettant la création d'un menu de gestion des conflits
