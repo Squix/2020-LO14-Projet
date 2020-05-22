@@ -90,15 +90,23 @@ walk(){
           fi
         done
 }
+
+#écrit le fichier passé en argument dans le journal
 log_write()
 {
+
+	#génère le chemin relatif du fichier à partir de son chemin absolu
+	elemName_temp=${1/$arbreA/} #supprime le chemin absolu de arbreA
+	elemName=${elemName_temp/$arbreB/} #supprime le chemin absolu de arbreB (pour que ça marche quelque soit le fichier passé en argument)
+	echo "$elemName"
+
 	#Si l'élément et un fichier, on ajoute f devant pour le représenter
-if [[ -f "$1" ]]; then
-	printf "f %s " $1  >> log_temp  #On fait précéder le nom du fichier par la mention f (pour file) pour l'identifier
-elif [[ -d "$1" ]]; then
-	printf "d %s " $1 >> log_temp #idem avec un D pour directory
- fi
- echo $(stat -c '%A%s%y' $1) >> log_temp  #Que l'élément soit un fichier ou un dossier, on lui indique ses meta-données
+	if [[ -f "$1" ]]; then
+		printf "f %s " $elemName  >> log_temp  #On fait précéder le nom du fichier par la mention f (pour file) pour l'identifier
+	elif [[ -d "$1" ]]; then
+		printf "d %s " $elemName >> log_temp #idem avec un D pour directory
+	 fi
+	 echo $(stat -c '%A%s%y' $1) >> log_temp  #Que l'élément soit un fichier ou un dossier, on lui indique ses meta-données
 }
 log_merge()			#On se débarasse du fichier log de lecture (log_temp) pour l'injecter dans le fichier log_file
 {
