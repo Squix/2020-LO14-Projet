@@ -51,7 +51,7 @@ walk(){
 	local indent="${2:-0}"
 	#pour chaque élément du répertoire
 	for entry in "$1"/*; do
-	#si c'est un fichier on affiche son chemin
+        	#si c'est un fichier on affiche son chemin
           if [[ -f "$entry" ]]; then
             printf "%*sF - %s\n" $indent '' "$entry"
 						log_compare $entry
@@ -89,7 +89,7 @@ log_merge()			#On se débarasse du fichier log de lecture (log_temp) pour l'inje
 log_compare()
 {
 		if [[ $(grep -c "$1" log_file) -ne 0 ]]; then #On regarde si une ligne correspond au nom de l'élément courant
-			echo "present dans la DB"
+			# echo "present dans la DB"
 				if [[ -f "$1" ]]; then			#Selon si l'élément courant est une fichier ou un dossier, on lui donne la même structure que celle du fichier de log
 					currentFormatRecherche="f $1 $(stat -c '%A%s%y' $1)"
 				elif [[ -d "$1" ]]; then
@@ -97,14 +97,39 @@ log_compare()
 				 fi
 			resultatDansBd=$(grep "$1 " log_file) #On récupère la ligne (théoriquement unique sans retouche manuelle) complète qui correspond à l'élément courant
 			if [[ "$currentFormatRecherche" == "$resultatDansBd" ]]; then
-				echo "correct"   #Si les meta données concordent, on est bon
+				return 1   #Si les meta données concordent, on renvoie 1
 			else
-				echo "ALERTE"		#Si les meta données ne sont pas concordes, ça pose problème
+				return 2		#Si les meta données ne sont pas concordes, on renvoie 2
 			fi
 		else	#Si aucune ligne ne correspond au fichier, on le signale
-			echo "absent de la DB"
+			return 0  #Si on ne retrouve aucune information sur l'élément dans le fichier log, on renvoie 0
 		fi
 }
+log_conflict_management()			#Fonction permettant la création d'un menu de gestion des conflits
+{
+	printf "\n"
+	printf "\t ================================ Alerte ================================\n"
+	echo "Le journal ne correspond à aucune des 2 versions présentées, que faire ? [Tapez 1, 2 ou 3]"
+	local PS3='Votre sélection: '
+	local options=("Synchronisation selon l'arbre A" "Synchronisation selon l'arbre B" "Annuler l'opération en cours (pas de sync)")
+	local opt
+	select opt in "${options[@]}"
+	do
+			case $opt in
+					"Synchronisation selon l'arbre A")
+							return 1
+							;;
+					"Synchronisation selon l'arbre B")
+							return 2
+							;;
+					"Annuler l'opération en cours (pas de sync)")
+							return 0
+							;;
+					*) echo "Saisie invalide, recommencez $REPLY";;
+			esac
+	done
+}
 #lance la boucle
+#log_conflict_management
 walk "$arbreA"
 log_merge
