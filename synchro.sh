@@ -55,7 +55,7 @@ compareFiles() {
 
 	local conformiteA=$(log_compare "$entry")
 	local conformiteB=$(log_compare "$eq_arbreB")
-	echo "confA: $conformiteA confB: $conformiteB"
+	#echo "confA: $conformiteA confB: $conformiteB"
 
 	if [[ "$conformiteA" == "1" ]] && [[ "$conformiteB" == "2" ]]; then
 		#le fichier p/A est conforme
@@ -74,8 +74,11 @@ walk(){
 	local indent="${2:-0}"
 	#pour chaque élément du répertoire
 	for entry in "$1"/*; do
-        	#si c'est un fichier on affiche son chemin
-          if [[ -f "$entry" ]]; then
+
+		local eq_arbreB="${entry/$arbreA/$arbreB}" #on génère le chemin de l'élément équivalent dans l'arbre B
+
+        #si c'est un fichier on affiche son chemin
+        if [[ -f "$entry" ]]; then
             printf "%*sF - %s\n" $indent '' "$entry"
 						#log_compare $entry
 						log_write $entry
@@ -87,16 +90,30 @@ walk(){
 							#teste la présence d'un conflit de métadonnées
 							if [[ $compResult == *"meta_diff"* ]]; then
 
+								#echo "${compResult##*;}"
+
 								#si le fichier conforme est celui de l'arbre A
-								if [[ "${compResult##;}" == "a" ]]; then
+								if [[ "${compResult##*;}" == "a" ]]; then
 									#synchronize le fichier non conforme avec les données du fichier conforme
 									synchroReftoFile "$arbreA" "$eq_arbreB"
 									log_write $entry
+								#si le fichier conforme est celui de l'arbre B
+								elif [[ "${compResult##*;}" == "b" ]]; then
+									#synchronize le fichier non conforme avec les données du fichier conforme
+									synchroReftoFile "$eq_arbreB" "$arbreA"
+									log_write $entry
+								elif [[ "${compResult##*;}" == "journal_incorrect" ]]; then
+									#conflit fallacieux
+									log_conflict_management
+								else
+								 echo "ERREUR - fonctionnalité non prévue"
 								fi
 
 
+							
+							
 							#teste la présence d'un conflit fichier/dossier
-						elif [[ $compResult == *"est_dossier"* ]]; then
+							elif [[ $compResult == *"est_dossier"* ]]; then
 
 								echo "$compResult"
 
