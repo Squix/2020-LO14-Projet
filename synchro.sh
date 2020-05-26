@@ -114,7 +114,7 @@ walk(){
         if [[ -f "$entry" ]]; then
             printf "%*sF - %s\n" $indent '' "$entry"
 						#log_compare $entry
-						log_write $entry
+						log_write $entry #TODO : n'est pas censé faire cela
 						#teste la présence de conflits
 						local compResult=$(compareFiles "$entry")
 						if [[ $compResult == *"conflit"* ]]; then
@@ -186,14 +186,80 @@ walk(){
 		#s'il s'agit d'un dossier, on affiche et on descend dedans
 		elif [[ -d "$entry" ]]; then
 			printf "%*sD - %s\n" $indent '' "$entry"
+			log_write $entry #TODO : n'est pas censé faire cela
+			#teste la présence de conflits
+			local compResult=$(compareFolders "$entry")
+
+			if [[ $compResult == *"conflit"* ]]; then
+
+				echo "$compResult"
+				#teste la présence d'un conflit de métadonnées
+				if [[ $compResult == *"meta_diff"* ]]; then
+
+					#si le dossier conforme est celui de l'arbre A
+					if [[ "${compResult##*;}" == "a" ]]; then
+						#synchronize le dossier non conforme avec les données du dossier conforme
+						synchroReftoFolder "$entry" "$eq_arbreB"
+						log_write $entry
+					#si le dossier conforme est celui de l'arbre B
+					elif [[ "${compResult##*;}" == "b" ]]; then
+						#synchronize le dossier non conforme avec les données du dossier conforme
+						synchroReftoFolder "$eq_arbreB" "$entry"
+						log_write $eq_arbreB
+					elif [[ "${compResult##*;}" == "journal_incorrect" ]]; then
+						#conflit fallacieux
+						log_conflict_management
+					else
+						echo "ERREUR - fonctionnalité non prévue"
+					fi
+							
+				#teste la présence d'un conflit fichier/dossier
+				elif [[ $compResult == *"est_fichier"* ]]; then
+
+					#si l'élément conforme est celui de l'arbre A
+					if [[ "${compResult##*;}" == "a" ]]; then
+						#remplace le fichier de l'arbre B par le dossier de l'arbre A
+						synchroFolderAndFile "$entry" "$eq_arbreB" 2
+						log_write $entry
+					#si l'élément conforme est celui de l'arbre B
+					elif [[ "${compResult##*;}" == "b" ]]; then
+						#remplace le dossier de l'arbre A par le fichier de l'arbre B
+						synchroFolderAndFile "$entry" "$eq_arbreB" 1
+						log_write $entry
+					elif [[ "${compResult##*;}" == "journal_incorrect" ]]; then
+						#conflit fallacieux
+						log_conflict_management
+					else
+						echo "ERREUR - fonctionnalité non prévue"
+					fi
+
+				#teste la présence d'un conflit dû à un dossier inexistant
+				elif [[ $compResult == *"inexistant"* ]]; then
+				
+					#si le dossier conforme est celui de l'arbre A
+					if [[ "${compResult##*;}" == "a" ]]; then
+						#crée le dossier dans l'arbreB
+						synchroReftoFolder "$entry" "$eq_arbreB"
+						log_write $entry
+					#si le dossier conforme est celui de l'arbre B
+					elif [[ "${compResult##*;}" == "b" ]]; then
+						#supprime le dossier de l'arbre A
+						rm -f -r "$entry"
+					elif [[ "${compResult##*;}" == "journal_incorrect" ]]; then
+						#conflit fallacieux
+						log_conflict_management
+					else
+						echo "ERREUR - fonctionnalité non prévue"
+					fi
+				fi
+			fi
 			#log_compare $entry
-			log_write $entry
 			walk "$entry" $((indent+4))
 		fi
         
 		
 		
-		done
+	done
 }
 
 #génère le chemin relatif du fichier à partir de son chemin absolu
@@ -226,6 +292,14 @@ synchroFolderAndFile() {
 		rm -f "$2" #on supprime le fichier
 		mkdir -p "$(dirname $2)" && cp -r --preserve "$1" "$2" #on copie le dossier à sa place
 	fi
+}
+
+#fonction qui synchronise les métadonnées d'un dossier avec celle d'un dossier de référence (crée au passage les dossiers parents manquants)
+synchroReftoFolder() {
+	mkdir -p "$(dirname $2)"
+	chmod --reference="$1" "$2"
+    chown --reference="$1" "$2"
+    touch --reference="$1" "$2"
 }
 
 # ---------------------------
