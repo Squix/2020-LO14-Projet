@@ -8,17 +8,6 @@
 arbreA="tests/arbreA"
 arbreB="tests/arbreB"
 
-#Affiche la hieracrhie des sous-repoertoires
-#ls -R tests/arbreA | grep ":$" | sed -e 's/:$//' -e 's/[^-][^\/]*\//--/g' -e 's/^/   /' -e 's/-/|/'
-#Affiche la hieracrhie des sous-repoertoires
-#ls -R tests/arbreB| grep ":$" | sed -e 's/:$//' -e 's/[^-][^\/]*\//--/g' -e 's/^/   /' -e 's/-/|/'
-#find tests/arbreA
-
-#fonction qui synchronise un fichier avec les données d'un fichier de référence (crée au passage les dossiers parents manquants)
-synchroReftoFile() {
-	mkdir -p "$(dirname $2)" && cp --preserve "$1" "$2"
-}
-
 #fonction qui compare les fichiers
 compareFiles() {
 
@@ -101,21 +90,18 @@ walk(){
 								elif [[ "${compResult##*;}" == "b" ]]; then
 									#synchronize le fichier non conforme avec les données du fichier conforme
 									synchroReftoFile "$eq_arbreB" "$arbreA"
-									log_write $entry
+									log_write $eq_arbreB
 								elif [[ "${compResult##*;}" == "journal_incorrect" ]]; then
 									#conflit fallacieux
 									log_conflict_management
 								else
 								 echo "ERREUR - fonctionnalité non prévue"
 								fi
-
-
-							
 							
 							#teste la présence d'un conflit fichier/dossier
 							elif [[ $compResult == *"est_dossier"* ]]; then
 
-								echo "$compResult"
+								echo "conflit dossier"
 
 
 							fi
@@ -137,6 +123,20 @@ getFileRelativePath() {
 	local elemName_temp=${1/$arbreA/} #supprime le chemin absolu de arbreA
 	local elemName=${elemName_temp/$arbreB/} #supprime le chemin absolu de arbreB (pour que ça marche quelque soit le fichier passé en argument)
 	echo "$elemName"
+}
+
+# ---------------------------
+# FONCTIONS DE SYNCHRO
+#----------------------------
+
+#fonction qui synchronise un fichier avec les données d'un fichier de référence (crée au passage les dossiers parents manquants)
+synchroReftoFile() {
+	mkdir -p "$(dirname $2)" && cp --preserve "$1" "$2"
+}
+
+#fonction qui transforme un dossier en un fichier en appliquant les metadonnées de référence (et vice-versa) (crée au passage les dossiers parents manquants)
+synchroFolderAndFile() {
+ echo "truc"
 }
 
 # ---------------------------
