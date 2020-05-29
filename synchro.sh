@@ -5,8 +5,8 @@
 # Pour P20
 #----------------------------
 
-arbreA="tests/arbreA"
-arbreB="tests/arbreB"
+arbreA=""
+arbreB=""
 
 #fonction qui compare les fichiers
 compareFiles() {
@@ -97,7 +97,7 @@ walk(){
 								else
 								 echo "ERREUR - fonctionnalité non prévue"
 								fi
-							
+
 							#teste la présence d'un conflit fichier/dossier
 							elif [[ $compResult == *"est_dossier"* ]]; then
 
@@ -170,7 +170,6 @@ log_merge()
 #compare les métadonnées d'un fichier passé en entrée aux métadonnées dudit fichier stockées dans le journal
 log_compare()
 {
-
 		local elemName=$(getFileRelativePath "$1")
 
 		if [[ $(grep -c "$elemName" log_file) -ne 0 ]]; then #On regarde si une ligne correspond au nom de l'élément courant
@@ -190,7 +189,6 @@ log_compare()
 			echo "0"  #Si on ne retrouve aucune information sur l'élément dans le fichier log, on renvoie 0
 		fi
 }
-
 log_conflict_management()			#Fonction permettant la création d'un menu de gestion des conflits
 {
 	printf "\n"
@@ -216,11 +214,50 @@ log_conflict_management()			#Fonction permettant la création d'un menu de gesti
 	done
 }
 
+recuperation_arbres()
+{
+		arbreA=$(sed '1q;d' log_file)
+		arbreB=$(sed '2q;d' log_file)
+
+		echo $arbreA >> log_temp
+		echo $arbreB >> log_temp
+}
+
+menu_choix_arbre()
+{
+		printf "\t ================================ Première utilisation ================================\n"
+		printf "Merci pour votre première utilisation de cet outil de synchronisation \n"
+		printf "Merci d'entrer le premier dossier que vous souhaitez synchroniser : (Adresse absolue) \n"
+		read arbreA
+		echo $arbreA
+		while [[ ! -d $arbreA ]]; do
+				echo "Vous n'avez pas entrer une adresse valide, recommencez : "
+				read arbreA
+				echo $arbreA
+	done
+
+		printf "Merci d'entrer le deuxième dossier que vous souhaitez synchroniser : (Adresse absolue)"
+		echo $arbreB
+		while [[ ! -d $arbreB ]]; do
+				echo "Vous n'avez pas entrer une adresse valide, recommencez : "
+				read arbreB
+				echo $arbreB
+	done
+				echo "$arbreA" >> log_temp
+				echo "$arbreB" >> log_temp
+				echo "" >> log_file
+}
 # ---------------------------
 # BOUCLE PRINCIPALE
 #----------------------------
 
+# on test si le programme a déjà tourné (pour le choix des branches )
+if [[ ! -f log_file ]]; then
+	menu_choix_arbre
+else
+	recuperation_arbres
+fi
+
 #lance la boucle
-#log_conflict_management
 walk "$arbreA"
 log_merge
