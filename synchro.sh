@@ -9,7 +9,7 @@ arbreA=""
 arbreB=""
 trap ctrl_c SIGINT
 
-function ctrl_c() {
+function cancelSync() {
 	printf "\n INTERRUPTION VOLONTAIRE DE L'UTILISATEUR \n"
 	 rm log_temp
 		exit 1
@@ -195,6 +195,7 @@ getFileRelativePath() {
 #prend en paramètre le résultat de la comparaison et les deux éléments comparés
 handleFileMetaConflict() {
 
+	local compResult=$1
 	local entry=$2
 	local eq_arbreB=$3
 
@@ -210,7 +211,7 @@ handleFileMetaConflict() {
 		log_write $eq_arbreB
 	elif [[ "${1##*;}" == "journal_incorrect" ]]; then
 		#conflit fallacieux
-		log_conflict_management
+		log_conflict_management handleFileMetaConflict $compResult $entry $eq_arbreB
 	else
 		echo "ERREUR - la comparaison a échoué"
 	fi
@@ -220,6 +221,7 @@ handleFileMetaConflict() {
 #prend en paramètre le résultat de la comparaison et les deux éléments comparés
 handleFileNotFileConflict() {
 
+	local compResult=$1
 	local entry=$2
 	local eq_arbreB=$3
 
@@ -235,7 +237,7 @@ handleFileNotFileConflict() {
 		log_write $entry
 	elif [[ "${compResult##*;}" == "journal_incorrect" ]]; then
 		#conflit fallacieux
-		log_conflict_management
+		log_conflict_management handleFileNotFileConflict $compResult $entry $eq_arbreB
 	else
 		echo "ERREUR - la comparaison a échoué"
 	fi
@@ -244,6 +246,7 @@ handleFileNotFileConflict() {
 
 handleFileNotExistingConflict() {
 
+	local compResult=$1
 	local entry=$2
 	local eq_arbreB=$3
 
@@ -258,7 +261,7 @@ handleFileNotExistingConflict() {
 		rm -f -r "$entry"
 	elif [[ "${compResult##*;}" == "journal_incorrect" ]]; then
 		#conflit fallacieux
-		log_conflict_management
+		log_conflict_management handleFileNotExistingConflict $compResult $entry $eq_arbreB
 	else
 		echo "ERREUR - la comparaison a échoué"
 	fi
@@ -267,6 +270,7 @@ handleFileNotExistingConflict() {
 
 handleFolderMetaConflict() {
 
+	local compResult=$1
 	local entry=$2
 	local eq_arbreB=$3
 
@@ -282,7 +286,7 @@ handleFolderMetaConflict() {
 		log_write $eq_arbreB
 	elif [[ "${compResult##*;}" == "journal_incorrect" ]]; then
 		#conflit fallacieux
-		local userChoice=$(compareFolders "$entry")log_conflict_management
+		log_conflict_management handleFolderMetaConflict $compResult $entry $eq_arbreB
 	else
 		echo "ERREUR - la comparaison a échoué"
 	fi
@@ -292,6 +296,7 @@ handleFolderMetaConflict() {
 #prend en paramètre le résultat de la comparaison et les deux éléments comparés
 handleFolderNotFolderConflict() {
 
+	local compResult=$1
 	local entry=$2
 	local eq_arbreB=$3
 
@@ -307,7 +312,7 @@ handleFolderNotFolderConflict() {
 		log_write $entry
 	elif [[ "${compResult##*;}" == "journal_incorrect" ]]; then
 		#conflit fallacieux
-		log_conflict_management
+		log_conflict_management handleFolderNotFolderConflict $compResult $entry $eq_arbreB
 	else
 		echo "ERREUR - la comparaison a échoué"
 	fi
@@ -316,6 +321,7 @@ handleFolderNotFolderConflict() {
 
 handleFolderNotExistingConflict() {
 
+	local compResult=$1
 	local entry=$2
 	local eq_arbreB=$3
 
@@ -330,7 +336,7 @@ handleFolderNotExistingConflict() {
 		rm -f -r "$entry"
 	elif [[ "${compResult##*;}" == "journal_incorrect" ]]; then
 		#conflit fallacieux
-		log_conflict_management
+		log_conflict_management handleFolderNotExistingConflict $compResult $entry $eq_arbreB
 	else
 		echo "ERREUR - la comparaison a échoué"
 	fi
@@ -364,7 +370,7 @@ synchroFolderAndFile() {
 
 #fonction qui synchronise les métadonnées d'un dossier avec celle d'un dossier de référence (crée au passage les dossiers parents manquants)
 synchroReftoFolder() {
-	mkdir -p "$(dirname $2)"
+	mkdir -p "$2"
 	chmod --reference="$1" "$2"
     chown --reference="$1" "$2"
     touch --reference="$1" "$2"
@@ -420,8 +426,19 @@ log_compare()
 			echo "0"  #Si on ne retrouve aucune information sur l'élément dans le fichier log, on renvoie 0
 		fi
 }
+#prend en paramètre la fonction a appeler pour résoudre le conflit (une fois la sélection faite)
+#mais aussi les 3 arguments de cette fonction (résultat de comparaison, fichier A et équivalent B)
 log_conflict_management()			#Fonction permettant la création d'un menu de gestion des conflits
-{	printf "\n"
+{	
+	
+	local compResult=$2
+	local entry=$3
+	local eq_arbreB=$4
+
+	#echo "entry: $entry"
+	#echo "eq_arbreB: $eq_arbreB"
+	
+	printf "\n"
 	printf "\t ================================ Alerte ================================\n"
 	echo "Le journal ne correspond à aucune des 2 versions présentées, que faire ? [Tapez 1, 2 ou 3]"
 	local PS3='Votre sélection: '
@@ -431,13 +448,17 @@ log_conflict_management()			#Fonction permettant la création d'un menu de gesti
 	do
 			case $opt in
 					"Synchronisation selon l'arbre A")
-							echo "1"
+							#appel de la fonction qui gère le conflit, en précisant que A est conforme
+							$1 "${compResult/journal_incorrect/a}" "$entry" "$eq_arbreB"
+							break
 							;;
 					"Synchronisation selon l'arbre B")
-							echo "2"
+							#appel de la fonction qui gère le conflit, en précisant que B est conforme
+							$1 "${compResult/journal_incorrect/b}" "$entry" "$eq_arbreB"
+							break
 							;;
 					"Annuler l'opération en cours (pas de sync)")
-							echo "0"
+							cancelSync
 							;;
 					*) echo "Saisie invalide, recommencez $REPLY";;
 			esac
