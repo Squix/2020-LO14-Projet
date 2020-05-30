@@ -10,6 +10,7 @@ arbreB=""
 trap ctrl_c SIGINT
 
 function ctrl_c() {
+	printf "\n INTERRUPTION VOLONTAIRE DE L'UTILISATEUR \n"
 	 rm log_temp
 		exit 1
 }
