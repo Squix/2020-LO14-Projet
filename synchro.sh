@@ -134,7 +134,7 @@ walk(){
 				elif [[ $compResult == *"inexistant"* ]]; then
 
 					handleFileNotExistingConflict $compResult $entry $eq_arbreB
-				
+
 				fi
 			fi
 		#s'il s'agit d'un dossier, on affiche et on descend dedans
@@ -151,7 +151,7 @@ walk(){
 				if [[ $compResult == *"meta_diff"* ]]; then
 
 					handleFolderMetaConflict $compResult $entry $eq_arbreB
-							
+
 				#teste la présence d'un conflit fichier/dossier
 				elif [[ $compResult == *"est_fichier"* ]]; then
 
@@ -166,9 +166,9 @@ walk(){
 			#log_compare $entry
 			walk "$entry" $((indent+4))
 		fi
-        
-		
-		
+
+
+
 	done
 }
 
@@ -236,7 +236,7 @@ handleFileNotFileConflict() {
 }
 
 handleFileNotExistingConflict() {
-	
+
 	local entry=$2
 	local eq_arbreB=$3
 
@@ -287,7 +287,7 @@ handleFolderNotFolderConflict() {
 
 	local entry=$2
 	local eq_arbreB=$3
-	
+
 	#si l'élément conforme est celui de l'arbre A
 	if [[ "${compResult##*;}" == "a" ]]; then
 		#remplace le fichier de l'arbre B par le dossier de l'arbre A
@@ -308,7 +308,7 @@ handleFolderNotFolderConflict() {
 }
 
 handleFolderNotExistingConflict() {
-	
+
 	local entry=$2
 	local eq_arbreB=$3
 
@@ -414,8 +414,7 @@ log_compare()
 		fi
 }
 log_conflict_management()			#Fonction permettant la création d'un menu de gestion des conflits
-{
-	printf "\n"
+{	printf "\n"
 	printf "\t ================================ Alerte ================================\n"
 	echo "Le journal ne correspond à aucune des 2 versions présentées, que faire ? [Tapez 1, 2 ou 3]"
 	local PS3='Votre sélection: '
@@ -453,19 +452,16 @@ menu_choix_arbre()
 		printf "Merci pour votre première utilisation de cet outil de synchronisation \n"
 		printf "Merci d'entrer le premier dossier que vous souhaitez synchroniser : (Adresse absolue) \n"
 		read arbreA
-		echo $arbreA
 		while [[ ! -d $arbreA ]]; do
 				echo "Vous n'avez pas entré une adresse valide, recommencez : "
 				read arbreA
-				echo $arbreA
 	done
 
-		printf "Merci d'entrer le deuxième dossier que vous souhaitez synchroniser : (Adresse absolue)"
-		echo $arbreB
+		printf "Merci d'entrer le deuxième dossier que vous souhaitez synchroniser : (Adresse absolue) \n"
+		read arbreB
 		while [[ ! -d $arbreB ]]; do
 				echo "Vous n'avez pas entré une adresse valide, recommencez : "
 				read arbreB
-				echo $arbreB
 	done
 				echo "$arbreA" >> log_temp
 				echo "$arbreB" >> log_temp
