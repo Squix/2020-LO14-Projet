@@ -33,7 +33,7 @@ compareFiles() {
 		else
 			#echo "le fichier existe, est un fichier mais ses meta sont différentes de celui de l'arbre B (meta)"
 
-			result="conflit;meta_diff" 
+			result="conflit;meta_diff"
 
 		fi
 
@@ -121,7 +121,7 @@ walk(){
         if [[ -f "$entry" ]]; then
             printf "%*sF - %s\n" $indent '' "$entry"
 			#log_compare $entry
-			#log_write $entry #TODO : n'est pas censé faire cela
+			log_write $entry #TODO : n'est pas censé faire cela
 			#teste la présence de conflits
 			local compResult=$(compareFiles "$entry")
 			if [[ $compResult == *"conflit"* ]]; then
@@ -147,7 +147,7 @@ walk(){
 		#s'il s'agit d'un dossier, on affiche et on descend dedans
 		elif [[ -d "$entry" ]]; then
 			printf "%*sD - %s\n" $indent '' "$entry"
-			#log_write $entry #TODO : n'est pas censé faire cela
+			log_write $entry #TODO : n'est pas censé faire cela
 			#teste la présence de conflits
 			local compResult=$(compareFolders "$entry")
 
