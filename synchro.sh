@@ -394,7 +394,7 @@ menu_choix_arbre()
 		read arbreA
 		echo $arbreA
 		while [[ ! -d $arbreA ]]; do
-				echo "Vous n'avez pas entrer une adresse valide, recommencez : "
+				echo "Vous n'avez pas entré une adresse valide, recommencez : "
 				read arbreA
 				echo $arbreA
 	done
@@ -402,7 +402,7 @@ menu_choix_arbre()
 		printf "Merci d'entrer le deuxième dossier que vous souhaitez synchroniser : (Adresse absolue)"
 		echo $arbreB
 		while [[ ! -d $arbreB ]]; do
-				echo "Vous n'avez pas entrer une adresse valide, recommencez : "
+				echo "Vous n'avez pas entré une adresse valide, recommencez : "
 				read arbreB
 				echo $arbreB
 	done
