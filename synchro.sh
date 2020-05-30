@@ -7,6 +7,13 @@
 
 arbreA=""
 arbreB=""
+trap ctrl_c SIGINT
+
+function ctrl_c() {
+	printf "\n INTERRUPTION VOLONTAIRE DE L'UTILISATEUR \n"
+	 rm log_temp
+		exit 1
+}
 
 #fonction qui compare les fichiers
 compareFiles() {
@@ -26,7 +33,7 @@ compareFiles() {
 		else
 			#echo "le fichier existe, est un fichier mais ses meta sont différentes de celui de l'arbre B (meta)"
 
-			result="conflit;meta_diff"
+			result="conflit;meta_diff" 
 
 		fi
 
