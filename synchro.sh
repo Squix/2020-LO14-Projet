@@ -7,8 +7,14 @@
 
 arbreA=""
 arbreB=""
+trap ctrl_c SIGINT
 
-#fonction qui compare les fichiers
+function ctrl_c() {
+		log_merge
+		exit 1
+}
+
+#fonction qui compare les fichiers 
 compareFiles() {
 
 	local eq_arbreB="${1/$arbreA/$arbreB}"
