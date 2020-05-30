@@ -10,11 +10,11 @@ arbreB=""
 trap ctrl_c SIGINT
 
 function ctrl_c() {
-		log_merge
+	 rm log_temp
 		exit 1
 }
 
-#fonction qui compare les fichiers 
+#fonction qui compare les fichiers
 compareFiles() {
 
 	local eq_arbreB="${1/$arbreA/$arbreB}"
@@ -99,16 +99,15 @@ walk(){
 									log_write $eq_arbreB
 								elif [[ "${compResult##*;}" == "journal_incorrect" ]]; then
 									#conflit fallacieux
-									log_conflict_management
+								 #	log_conflict_management
+								 echo "temp"
 								else
 								 echo "ERREUR - fonctionnalité non prévue"
 								fi
 
 							#teste la présence d'un conflit fichier/dossier
 							elif [[ $compResult == *"est_dossier"* ]]; then
-
 								echo "conflit dossier"
-
 
 							fi
 
@@ -235,19 +234,15 @@ menu_choix_arbre()
 		printf "Merci pour votre première utilisation de cet outil de synchronisation \n"
 		printf "Merci d'entrer le premier dossier que vous souhaitez synchroniser : (Adresse absolue) \n"
 		read arbreA
-		echo $arbreA
 		while [[ ! -d $arbreA ]]; do
 				echo "Vous n'avez pas entrer une adresse valide, recommencez : "
 				read arbreA
-				echo $arbreA
 	done
 
 		printf "Merci d'entrer le deuxième dossier que vous souhaitez synchroniser : (Adresse absolue)"
-		echo $arbreB
+		read arbreB
 		while [[ ! -d $arbreB ]]; do
 				echo "Vous n'avez pas entrer une adresse valide, recommencez : "
-				read arbreB
-				echo $arbreB
 	done
 				echo "$arbreA" >> log_temp
 				echo "$arbreB" >> log_temp
