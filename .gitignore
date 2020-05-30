@@ -1,3 +1,4 @@
 #permet d'éviter l'envoi des fichiers de logs et de l'architecture de test sur Github
 tests/**
 log_file
+log_temp
