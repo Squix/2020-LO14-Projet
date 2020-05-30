@@ -505,7 +505,8 @@ if [[ ! -f log_file ]]; then
 else
 	recuperation_arbres
 fi
-
+clear
+echo "Synchronisation ..."
 #lance la boucle
 walk "$arbreA"
 log_merge
