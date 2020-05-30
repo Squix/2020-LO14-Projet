@@ -188,6 +188,7 @@ getFileRelativePath() {
 #prend en paramètre le résultat de la comparaison et les deux éléments comparés
 handleFileMetaConflict() {
 
+	local compResult=$1
 	local entry=$2
 	local eq_arbreB=$3
 
@@ -203,7 +204,7 @@ handleFileMetaConflict() {
 		log_write $eq_arbreB
 	elif [[ "${1##*;}" == "journal_incorrect" ]]; then
 		#conflit fallacieux
-		log_conflict_management
+		log_conflict_management handleFileMetaConflict $compResult $entry $eq_arbreB
 	else
 		echo "ERREUR - la comparaison a échoué"
 	fi
@@ -213,6 +214,7 @@ handleFileMetaConflict() {
 #prend en paramètre le résultat de la comparaison et les deux éléments comparés
 handleFileNotFileConflict() {
 
+	local compResult=$1
 	local entry=$2
 	local eq_arbreB=$3
 
@@ -228,7 +230,7 @@ handleFileNotFileConflict() {
 		log_write $entry
 	elif [[ "${compResult##*;}" == "journal_incorrect" ]]; then
 		#conflit fallacieux
-		log_conflict_management
+		log_conflict_management handleFileNotFileConflict $compResult $entry $eq_arbreB
 	else
 		echo "ERREUR - la comparaison a échoué"
 	fi
@@ -237,6 +239,7 @@ handleFileNotFileConflict() {
 
 handleFileNotExistingConflict() {
 	
+	local compResult=$1
 	local entry=$2
 	local eq_arbreB=$3
 
@@ -251,7 +254,7 @@ handleFileNotExistingConflict() {
 		rm -f -r "$entry"
 	elif [[ "${compResult##*;}" == "journal_incorrect" ]]; then
 		#conflit fallacieux
-		log_conflict_management
+		log_conflict_management handleFileNotExistingConflict $compResult $entry $eq_arbreB
 	else
 		echo "ERREUR - la comparaison a échoué"
 	fi
@@ -260,6 +263,7 @@ handleFileNotExistingConflict() {
 
 handleFolderMetaConflict() {
 
+	local compResult=$1
 	local entry=$2
 	local eq_arbreB=$3
 
@@ -275,7 +279,7 @@ handleFolderMetaConflict() {
 		log_write $eq_arbreB
 	elif [[ "${compResult##*;}" == "journal_incorrect" ]]; then
 		#conflit fallacieux
-		local userChoice=$(compareFolders "$entry")log_conflict_management
+		log_conflict_management handleFolderMetaConflict $compResult $entry $eq_arbreB
 	else
 		echo "ERREUR - la comparaison a échoué"
 	fi
@@ -285,6 +289,7 @@ handleFolderMetaConflict() {
 #prend en paramètre le résultat de la comparaison et les deux éléments comparés
 handleFolderNotFolderConflict() {
 
+	local compResult=$1
 	local entry=$2
 	local eq_arbreB=$3
 	
@@ -300,7 +305,7 @@ handleFolderNotFolderConflict() {
 		log_write $entry
 	elif [[ "${compResult##*;}" == "journal_incorrect" ]]; then
 		#conflit fallacieux
-		log_conflict_management
+		log_conflict_management handleFolderNotFolderConflict $compResult $entry $eq_arbreB
 	else
 		echo "ERREUR - la comparaison a échoué"
 	fi
@@ -312,10 +317,6 @@ handleFolderNotExistingConflict() {
 	local compResult=$1
 	local entry=$2
 	local eq_arbreB=$3
-	echo "handle function launched"
-	echo "compResult: $compResult"
-	echo "entry: $entry"
-	echo "eq_arbreB: $eq_arbreB"
 
 	#si le dossier conforme est celui de l'arbre A
 	if [[ "${compResult##*;}" == "a" ]]; then
@@ -427,9 +428,8 @@ log_conflict_management()			#Fonction permettant la création d'un menu de gesti
 	local entry=$3
 	local eq_arbreB=$4
 
-	echo "compResult: $compResult"
-	echo "entry: $entry"
-	echo "eq_arbreB: $eq_arbreB"
+	#echo "entry: $entry"
+	#echo "eq_arbreB: $eq_arbreB"
 
 	printf "\n"
 	printf "\t ================================ Alerte ================================\n"
