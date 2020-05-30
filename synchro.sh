@@ -114,7 +114,7 @@ walk(){
         if [[ -f "$entry" ]]; then
             printf "%*sF - %s\n" $indent '' "$entry"
 						#log_compare $entry
-						log_write $entry #TODO : n'est pas censé faire cela
+						#log_write $entry #TODO : n'est pas censé faire cela
 						#teste la présence de conflits
 						local compResult=$(compareFiles "$entry")
 						if [[ $compResult == *"conflit"* ]]; then
@@ -123,70 +123,25 @@ walk(){
 							#teste la présence d'un conflit de métadonnées
 							if [[ $compResult == *"meta_diff"* ]]; then
 
-								#echo "${compResult##*;}"
-
-								#si le fichier conforme est celui de l'arbre A
-								if [[ "${compResult##*;}" == "a" ]]; then
-									#synchronize le fichier non conforme avec les données du fichier conforme
-									synchroReftoFile "$entry" "$eq_arbreB"
-									log_write $entry
-								#si le fichier conforme est celui de l'arbre B
-								elif [[ "${compResult##*;}" == "b" ]]; then
-									#synchronize le fichier non conforme avec les données du fichier conforme
-									synchroReftoFile "$eq_arbreB" "$entry"
-									log_write $eq_arbreB
-								elif [[ "${compResult##*;}" == "journal_incorrect" ]]; then
-									#conflit fallacieux
-									log_conflict_management
-								else
-								 echo "ERREUR - fonctionnalité non prévue"
-								fi
+								handleFileMetaConflict $compResult $entry $eq_arbreB
 
 							#teste la présence d'un conflit fichier/dossier
 							elif [[ $compResult == *"est_dossier"* ]]; then
 
-								#si l'élément conforme est celui de l'arbre A
-								if [[ "${compResult##*;}" == "a" ]]; then
-									#remplace le dossier de l'arbre B par le fichier de l'arbre A
-									synchroFolderAndFile "$eq_arbreB" "$entry" 1
-									log_write $entry
-								#si l'élément conforme est celui de l'arbre B
-								elif [[ "${compResult##*;}" == "b" ]]; then
-									#remplace le fichier de l'arbre A par le dossier de l'arbre B
-									synchroFolderAndFile "$eq_arbreB" "$entry" 2
-									log_write $entry
-								elif [[ "${compResult##*;}" == "journal_incorrect" ]]; then
-									#conflit fallacieux
-									log_conflict_management
-								else
-								 echo "ERREUR - fonctionnalité non prévue"
-								fi
+								handleFileNotFileConflict $compResult $entry $eq_arbreB
 
 							#teste la présence d'un conflit dû à un fichier/dossier inexistant
 							elif [[ $compResult == *"inexistant"* ]]; then
+
+								handleFileNotExistingConflict $compResult $entry $eq_arbreB
 							
-								#si le fichier conforme est celui de l'arbre A
-								if [[ "${compResult##*;}" == "a" ]]; then
-									#synchronize le fichier non conforme avec les données du fichier conforme
-									synchroReftoFile "$entry" "$eq_arbreB"
-									log_write $entry
-								#si le fichier conforme est celui de l'arbre B
-								elif [[ "${compResult##*;}" == "b" ]]; then
-									#supprime le fichier de l'arbre A
-									rm -f -r "$entry"
-								elif [[ "${compResult##*;}" == "journal_incorrect" ]]; then
-									#conflit fallacieux
-									log_conflict_management
-								else
-								 echo "ERREUR - fonctionnalité non prévue"
-								fi
 							fi
 
 						fi
 		#s'il s'agit d'un dossier, on affiche et on descend dedans
 		elif [[ -d "$entry" ]]; then
 			printf "%*sD - %s\n" $indent '' "$entry"
-			log_write $entry #TODO : n'est pas censé faire cela
+			#log_write $entry #TODO : n'est pas censé faire cela
 			#teste la présence de conflits
 			local compResult=$(compareFolders "$entry")
 
@@ -196,22 +151,7 @@ walk(){
 				#teste la présence d'un conflit de métadonnées
 				if [[ $compResult == *"meta_diff"* ]]; then
 
-					#si le dossier conforme est celui de l'arbre A
-					if [[ "${compResult##*;}" == "a" ]]; then
-						#synchronize le dossier non conforme avec les données du dossier conforme
-						synchroReftoFolder "$entry" "$eq_arbreB"
-						log_write $entry
-					#si le dossier conforme est celui de l'arbre B
-					elif [[ "${compResult##*;}" == "b" ]]; then
-						#synchronize le dossier non conforme avec les données du dossier conforme
-						synchroReftoFolder "$eq_arbreB" "$entry"
-						log_write $eq_arbreB
-					elif [[ "${compResult##*;}" == "journal_incorrect" ]]; then
-						#conflit fallacieux
-						log_conflict_management
-					else
-						echo "ERREUR - fonctionnalité non prévue"
-					fi
+					handleFolderMetaConflict $compResult $entry $eq_arbreB
 							
 				#teste la présence d'un conflit fichier/dossier
 				elif [[ $compResult == *"est_fichier"* ]]; then
@@ -269,6 +209,142 @@ getFileRelativePath() {
 	local elemName=${elemName_temp/$arbreB/} #supprime le chemin absolu de arbreB (pour que ça marche quelque soit le fichier passé en argument)
 	echo "$elemName"
 }
+
+# ---------------------------
+# FONCTIONS DE GESTION DES CONFLITS
+#----------------------------
+
+#gère les conflits liées aux métadonnées des fichiers
+#prend en paramètre le résultat de la comparaison et les deux éléments comparés
+handleFileMetaConflict() {
+
+	local entry=$2
+	local eq_arbreB=$3
+
+	#si le fichier conforme est celui de l'arbre A
+	if [[ "${1##*;}" == "a" ]]; then
+		#synchronize le fichier non conforme avec les données du fichier conforme
+		synchroReftoFile "$entry" "$eq_arbreB"
+		log_write $entry
+	#si le fichier conforme est celui de l'arbre B
+	elif [[ "${1##*;}" == "b" ]]; then
+		#synchronize le fichier non conforme avec les données du fichier conforme
+		synchroReftoFile "$eq_arbreB" "$entry"
+		log_write $eq_arbreB
+	elif [[ "${1##*;}" == "journal_incorrect" ]]; then
+		#conflit fallacieux
+		log_conflict_management
+	else
+		echo "ERREUR - la comparaison a échoué"
+	fi
+}
+
+#gère les conflits fichier/dossier
+#prend en paramètre le résultat de la comparaison et les deux éléments comparés
+handleFileNotFileConflict() {
+
+	local entry=$2
+	local eq_arbreB=$3
+
+	#si l'élément conforme est celui de l'arbre A
+	if [[ "${compResult##*;}" == "a" ]]; then
+		#remplace le dossier de l'arbre B par le fichier de l'arbre A
+		synchroFolderAndFile "$eq_arbreB" "$entry" 1
+		log_write $entry
+	#si l'élément conforme est celui de l'arbre B
+	elif [[ "${compResult##*;}" == "b" ]]; then
+		#remplace le fichier de l'arbre A par le dossier de l'arbre B
+		synchroFolderAndFile "$eq_arbreB" "$entry" 2
+		log_write $entry
+	elif [[ "${compResult##*;}" == "journal_incorrect" ]]; then
+		#conflit fallacieux
+		log_conflict_management
+	else
+		echo "ERREUR - la comparaison a échoué"
+	fi
+
+}
+
+handleFileNotExistingConflict() {
+	
+	local entry=$2
+	local eq_arbreB=$3
+
+	#si le fichier conforme est celui de l'arbre A
+	if [[ "${compResult##*;}" == "a" ]]; then
+		#synchronize le fichier non conforme avec les données du fichier conforme
+		synchroReftoFile "$entry" "$eq_arbreB"
+		log_write $entry
+	#si le fichier conforme est celui de l'arbre B
+	elif [[ "${compResult##*;}" == "b" ]]; then
+		#supprime le fichier de l'arbre A
+		rm -f -r "$entry"
+	elif [[ "${compResult##*;}" == "journal_incorrect" ]]; then
+		#conflit fallacieux
+		log_conflict_management
+	else
+		echo "ERREUR - la comparaison a échoué"
+	fi
+
+}
+
+handleFolderMetaConflict() {
+
+	local entry=$2
+	local eq_arbreB=$3
+
+	#si le dossier conforme est celui de l'arbre A
+	if [[ "${compResult##*;}" == "a" ]]; then
+		#synchronize le dossier non conforme avec les données du dossier conforme
+		synchroReftoFolder "$entry" "$eq_arbreB"
+		log_write $entry
+	#si le dossier conforme est celui de l'arbre B
+	elif [[ "${compResult##*;}" == "b" ]]; then
+		#synchronize le dossier non conforme avec les données du dossier conforme
+		synchroReftoFolder "$eq_arbreB" "$entry"
+		log_write $eq_arbreB
+	elif [[ "${compResult##*;}" == "journal_incorrect" ]]; then
+		#conflit fallacieux
+		local userChoice=$(compareFolders "$entry")log_conflict_management
+	else
+		echo "ERREUR - la comparaison a échoué"
+	fi
+}
+
+#gère les conflits fichier/dossier
+#prend en paramètre le résultat de la comparaison et les deux éléments comparés
+handleFolderNotFolderConflict() {
+
+	local entry=$2
+	local eq_arbreB=$3
+
+	
+
+}
+
+handleFileNotExistingConflict() {
+	
+	local entry=$2
+	local eq_arbreB=$3
+
+	#si le fichier conforme est celui de l'arbre A
+	if [[ "${compResult##*;}" == "a" ]]; then
+		#synchronize le fichier non conforme avec les données du fichier conforme
+		synchroReftoFile "$entry" "$eq_arbreB"
+		log_write $entry
+	#si le fichier conforme est celui de l'arbre B
+	elif [[ "${compResult##*;}" == "b" ]]; then
+		#supprime le fichier de l'arbre A
+		rm -f -r "$entry"
+	elif [[ "${compResult##*;}" == "journal_incorrect" ]]; then
+		#conflit fallacieux
+		log_conflict_management
+	else
+		echo "ERREUR - la comparaison a échoué"
+	fi
+
+}
+
 
 # ---------------------------
 # FONCTIONS DE SYNCHRO
