@@ -364,13 +364,13 @@ log_conflict_management()			#Fonction permettant la création d'un menu de gesti
 	do
 			case $opt in
 					"Synchronisation selon l'arbre A")
-							return 1
+							echo "1"
 							;;
 					"Synchronisation selon l'arbre B")
-							return 2
+							echo "2"
 							;;
 					"Annuler l'opération en cours (pas de sync)")
-							return 0
+							echo "0"
 							;;
 					*) echo "Saisie invalide, recommencez $REPLY";;
 			esac
