@@ -309,8 +309,13 @@ handleFolderNotFolderConflict() {
 
 handleFolderNotExistingConflict() {
 	
+	local compResult=$1
 	local entry=$2
 	local eq_arbreB=$3
+	echo "handle function launched"
+	echo "compResult: $compResult"
+	echo "entry: $entry"
+	echo "eq_arbreB: $eq_arbreB"
 
 	#si le dossier conforme est celui de l'arbre A
 	if [[ "${compResult##*;}" == "a" ]]; then
@@ -323,7 +328,7 @@ handleFolderNotExistingConflict() {
 		rm -f -r "$entry"
 	elif [[ "${compResult##*;}" == "journal_incorrect" ]]; then
 		#conflit fallacieux
-		log_conflict_management
+		log_conflict_management handleFolderNotExistingConflict $compResult $entry $eq_arbreB
 	else
 		echo "ERREUR - la comparaison a échoué"
 	fi
@@ -357,7 +362,7 @@ synchroFolderAndFile() {
 
 #fonction qui synchronise les métadonnées d'un dossier avec celle d'un dossier de référence (crée au passage les dossiers parents manquants)
 synchroReftoFolder() {
-	mkdir -p "$(dirname $2)"
+	mkdir -p "$2"
 	chmod --reference="$1" "$2"
     chown --reference="$1" "$2"
     touch --reference="$1" "$2"
@@ -413,8 +418,19 @@ log_compare()
 			echo "0"  #Si on ne retrouve aucune information sur l'élément dans le fichier log, on renvoie 0
 		fi
 }
+#prend en paramètre la fonction a appeler pour résoudre le conflit (une fois la sélection faite)
+#mais aussi les 3 arguments de cette fonction (résultat de comparaison, fichier A et équivalent B)
 log_conflict_management()			#Fonction permettant la création d'un menu de gestion des conflits
 {
+
+	local compResult=$2
+	local entry=$3
+	local eq_arbreB=$4
+
+	echo "compResult: $compResult"
+	echo "entry: $entry"
+	echo "eq_arbreB: $eq_arbreB"
+
 	printf "\n"
 	printf "\t ================================ Alerte ================================\n"
 	echo "Le journal ne correspond à aucune des 2 versions présentées, que faire ? [Tapez 1, 2 ou 3]"
@@ -425,13 +441,17 @@ log_conflict_management()			#Fonction permettant la création d'un menu de gesti
 	do
 			case $opt in
 					"Synchronisation selon l'arbre A")
-							echo "1"
+							#appel de la fonction qui gère le conflit, en précisant que A est conforme
+							$1 "${compResult/journal_incorrect/a}" "$entry" "$eq_arbreB"
+							break
 							;;
 					"Synchronisation selon l'arbre B")
-							echo "2"
+							#appel de la fonction qui gère le conflit, en précisant que B est conforme
+							$1 "${compResult/journal_incorrect/b}" "$entry" "$eq_arbreB"
+							break
 							;;
 					"Annuler l'opération en cours (pas de sync)")
-							echo "0"
+							cancelSync
 							;;
 					*) echo "Saisie invalide, recommencez $REPLY";;
 			esac
