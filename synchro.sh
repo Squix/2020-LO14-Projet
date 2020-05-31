@@ -7,9 +7,9 @@
 
 arbreA=""
 arbreB=""
-trap ctrl_c SIGINT
+trap cancelSync INT
 
-function cancelSync() {
+cancelSync() {
 	printf "\n INTERRUPTION VOLONTAIRE DE L'UTILISATEUR \n"
 	 rm log_temp
 		exit 1
@@ -18,7 +18,18 @@ function cancelSync() {
 #fonction qui compare les fichiers
 compareFiles() {
 
-	local eq_arbreB="${1/$arbreA/$arbreB}"
+	estdDansB=$(echo $1 | grep -n "arbreB")
+
+	if [[ estDansB -ne 0 ]]; then
+	{
+		local eq_arbreA="${1/$arbreB/$arbreA}"
+	}
+else
+	{
+		local eq_arbreB="${1/$arbreA/$arbreB}"
+	}
+fi
+
 	local result=""
 
 	if [[ -f $eq_arbreB ]]; then
@@ -120,8 +131,7 @@ walk(){
         #si c'est un fichier on affiche son chemin
         if [[ -f "$entry" ]]; then
             printf "%*sF - %s\n" $indent '' "$entry"
-			#log_compare $entry
-			log_write $entry #TODO : n'est pas censé faire cela
+			#log_compare $ #TODO : n'est pas censé faire cela
 			#teste la présence de conflits
 			local compResult=$(compareFiles "$entry")
 			if [[ $compResult == *"conflit"* ]]; then
@@ -143,11 +153,12 @@ walk(){
 					handleFileNotExistingConflict $compResult $entry $eq_arbreB
 
 				fi
+			else
+					log_write $entry
 			fi
 		#s'il s'agit d'un dossier, on affiche et on descend dedans
 		elif [[ -d "$entry" ]]; then
 			printf "%*sD - %s\n" $indent '' "$entry"
-			log_write $entry #TODO : n'est pas censé faire cela
 			#teste la présence de conflits
 			local compResult=$(compareFolders "$entry")
 
@@ -169,6 +180,8 @@ walk(){
 
 					handleFolderNotExistingConflict $compResult $entry $eq_arbreB
 				fi
+			else
+				log_write $entry
 			fi
 			#log_compare $entry
 			walk "$entry" $((indent+4))
@@ -429,15 +442,15 @@ log_compare()
 #prend en paramètre la fonction a appeler pour résoudre le conflit (une fois la sélection faite)
 #mais aussi les 3 arguments de cette fonction (résultat de comparaison, fichier A et équivalent B)
 log_conflict_management()			#Fonction permettant la création d'un menu de gestion des conflits
-{	
-	
+{
+
 	local compResult=$2
 	local entry=$3
 	local eq_arbreB=$4
 
 	#echo "entry: $entry"
 	#echo "eq_arbreB: $eq_arbreB"
-	
+
 	printf "\n"
 	printf "\t ================================ Alerte ================================\n"
 	echo "Le journal ne correspond à aucune des 2 versions présentées, que faire ? [Tapez 1, 2 ou 3]"
