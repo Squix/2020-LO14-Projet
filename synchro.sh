@@ -144,14 +144,20 @@ walk(){
 				if [[ estDansB -ne 0 ]]; then
 				{
 					local eq_arbre="${1/$arbreB/$arbreA}"
-					rechercheLog=$(log_compare "$entry")
 
-					if [ rechercheLog -eq 1 ] || [ rechercheLog -eq 1 ] ; then
-						{
-							echo "recherche est 0 "
-						$recherche=0
+				if [[ -f "$entry" ]]; then
+					{
+						rechercheLog=$(log_compare_temp "$entry")
+						if [[ $rechercheLog -eq 1 ]] ; then
+							{
+							recherche=0
+						}
+						fi
+					} else
+					{
+						echo "deja vu :"
 					}
-					fi
+				fi
 				}
 			else
 				{
@@ -159,7 +165,7 @@ walk(){
 				}
 			fi
 
-			if [ $recherche -eq 1 ] ; then
+			if [[ $recherche -eq 1 ]] ; then
 					{
 	        #si c'est un fichier on affiche son chemin
 	        if [[ -f "$entry" ]]; then
@@ -219,8 +225,6 @@ walk(){
 			fi
 		}
 	fi
-
-
 
 	done
 }
@@ -470,6 +474,22 @@ log_compare()
 			fi
 		else	#Si aucune ligne ne correspond au fichier, on le signale
 			echo "0"  #Si on ne retrouve aucune information sur l'élément dans le fichier log, on renvoie 0
+		fi
+}
+log_compare_temp()
+{
+		local elemName=$(getFileRelativePath "$1")
+
+		if [[ $(grep -c "$elemName" log_temp) -ne 0 ]]; then #On regarde si une ligne correspond au nom de l'élément courant
+				if [[ -f "$1" ]]; then			#Selon si l'élément courant est un fichier ou un dossier, on lui donne la même structure que celle du fichier de log
+					currentFormatRecherche="f $elemName $(stat -c '%A%s%y' $1)"
+				elif [[ -d "$1" ]]; then
+					currentFormatRecherche="d $elemName $(stat -c '%A%s%y' $1)"
+				 fi
+			resultatDansBd=$(grep "$elemName " log_temp) #On récupère la ligne (théoriquement unique sans retouche manuelle) complète qui correspond à l'élément courant
+			if [[ "$currentFormatRecherche" == "$resultatDansBd" ]]; then
+				echo "1"   #Si les meta données concordent, on renvoie 1
+			fi
 		fi
 }
 #prend en paramètre la fonction a appeler pour résoudre le conflit (une fois la sélection faite)
