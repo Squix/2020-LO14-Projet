@@ -7,7 +7,7 @@
 
 arbreA=""
 arbreB=""
-trap ctrl_c SIGINT
+trap cancelSync SIGINT
 
 function cancelSync() {
 	printf "\n INTERRUPTION VOLONTAIRE DE L'UTILISATEUR \n"
@@ -18,15 +18,26 @@ function cancelSync() {
 #fonction qui compare les fichiers
 compareFiles() {
 
-	local eq_arbreB="${1/$arbreA/$arbreB}"
+	estdDansB=$(echo $1 | grep -c "arbreB")
+
+	if [[ estDansB -ne 0 ]]; then
+	{
+		local eq_arbre="${1/$arbreB/$arbreA}"
+	}
+else
+	{
+		local eq_arbre="${1/$arbreA/$arbreB}"
+	}
+fi
+
 	local result=""
 
-	if [[ -f $eq_arbreB ]]; then
+	if [[ -f $eq_arbre ]]; then
 		#le fichier existe et est un fichier
 		#echo "le fichier existe et est un fichier"
 
 		#teste si les 2 fichiers sont identiques (métadonnées)
-		if [[ "$(stat -c '%A%s%y' "$1")" == "$(stat -c '%A%s%y' "$eq_arbreB")" ]]; then
+		if [[ "$(stat -c '%A%s%y' "$1")" == "$(stat -c '%A%s%y' "$eq_arbre")" ]]; then
 			#echo "le fichier existe, est un fichier et est identique à celui de l'arbre B (meta)"
 			#TODO comparaison du contenu du fichier et verif avec le journal
 			result="ok"
@@ -37,7 +48,7 @@ compareFiles() {
 
 		fi
 
-	elif [[ -d $eq_arbreB ]]; then
+	elif [[ -d $eq_arbre ]]; then
 		#le fichier existe mais est un dossier
 		#echo "ERREUR - le fichier est un dossier !"
 		result="conflit;est_dossier"
@@ -49,40 +60,71 @@ compareFiles() {
 
 	#on trouve quel est le fichier conforme au journal
 
-	local conformiteA=$(log_compare "$entry")
-	local conformiteB=$(log_compare "$eq_arbreB")
+	local conformiteCourant=$(log_compare "$entry")
+	local conformiteAutre=$(log_compare "$eq_arbre")
 	#echo "confA: $conformiteA confB: $conformiteB"
 
-	if [[ "$conformiteA" == "1" ]] && [[ "$conformiteB" == "2" ]]; then
-		#le fichier p/A est conforme
-		result+=";a"
-	elif [[ "$conformiteA" == "2" ]] && [[ "$conformiteB" == "1" ]]; then
-		#le fichier p/B est conforme
-		result+=";b"
-	elif [[ "$conformiteA" == "0" ]] || [[ [["$conformiteA" == "2"]] && [["$conformiteB" == "2"]] ]]; then
-		result+=";journal_incorrect"
-	fi
-
+	if [[ estDansB -ne 0 ]]; then
+		if [[ "$conformiteCourant" == "1" ]] && [[ "$conformiteAutre" == "1" ]]; then
+			#le fichier p/A est conforme
+			result+=";b"
+		elif [[ "$conformiteCourant" == "1" ]] && [[ "$conformiteAutre" == "2" ]]; then
+			#le fichier p/A est conforme
+			result+=";b"
+		elif [[ "$conformiteCourant" == "2" ]] && [[ "$conformiteAutre" == "1" ]]; then
+			#le fichier p/B est conforme
+			result+=";a"
+		elif [[ "$conformiteCourant" == "2" ]] && [[ "$conformiteAutre" == "2" ]]; then
+			result+=";journal_incorrect"
+		elif [[ "$conformiteAutre" == "0" ]]; then
+			result+=";journal_incorrect"
+		fi
+	 else
+		if [[ "$conformiteCourant" == "1" ]] && [[ "$conformiteAutre" == "1" ]]; then
+			#le fichier p/A est conforme
+			result+=";a"
+		elif [[ "$conformiteCourant" == "1" ]] && [[ "$conformiteAutre" == "2" ]]; then
+			#le fichier p/A est conforme
+			result+=";a"
+		elif [[ "$conformiteCourant" == "2" ]] && [[ "$conformiteAutre" == "1" ]]; then
+			#le fichier p/B est conforme
+			result+=";b"
+		elif [[ "$conformiteCourant" == "2" ]] && [[ "$conformiteAutre" == "2" ]]; then
+			result+=";journal_incorrect"
+		elif [[ "$conformiteAutre" == "0" ]]; then
+			result+=";journal_incorrect"
+		fi
+fi
 	echo $result
 }
 
 #fonction qui compare les dossiers
 compareFolders() {
 
-	local eq_arbreB="${1/$arbreA/$arbreB}"
+	estdDansB=$(echo $1 | grep -c "arbreB")
+
+	if [[ estDansB -ne 0 ]]; then
+	{
+		local eq_arbre="${1/$arbreB/$arbreA}"
+	}
+else
+	{
+		local eq_arbre="${1/$arbreA/$arbreB}"
+	}
+fi
 	local result=""
 
-	if [[ -d $eq_arbreB ]]; then
+	if [[ -d $eq_arbre ]]; then
 		#le dossier existe et est un dossier
 
 		#teste si les 2 dossiers sont identiques (métadonnées)
-		if [[ "$(stat -c '%A%s%y' "$1")" == "$(stat -c '%A%s%y' "$eq_arbreB")" ]]; then
+		if [[ "$(stat -c '%A%s%y' "$1")" == "$(stat -c '%A%s%y' "$eq_arbre")" ]]; then
 			result="ok"
 		else
 			result="conflit;meta_diff"
 		fi
 
-	elif [[ -f $eq_arbreB ]]; then
+	elif [[ -f $eq_arbre ]]; then
 		#le dossier existe mais est un fichier
 		result="conflit;est_fichier"
 	else
@@ -92,19 +134,41 @@ compareFolders() {
 
 	#on trouve quel est le dossier conforme au journal
 
-	local conformiteA=$(log_compare "$entry")
-	local conformiteB=$(log_compare "$eq_arbreB")
+	local conformiteCourant=$(log_compare "$entry")
+	local conformiteAutre=$(log_compare "$eq_arbre")
 	#echo "confA: $conformiteA confB: $conformiteB"
 
-	if [[ "$conformiteA" == "1" ]] && [[ "$conformiteB" == "2" ]]; then
-		#le dossier p/A est conforme
-		result+=";a"
-	elif [[ "$conformiteA" == "2" ]] && [[ "$conformiteB" == "1" ]]; then
-		#le dossier p/B est conforme
-		result+=";b"
-	elif [[ "$conformiteA" == "0" ]] || [[ [["$conformiteA" == "2"]] && [["$conformiteB" == "2"]] ]]; then
-		result+=";journal_incorrect"
-	fi
+	if [[ estDansB -ne 0 ]]; then
+		if [[ "$conformiteCourant" == "1" ]] && [[ "$conformiteAutre" == "1" ]]; then
+			#le fichier p/A est conforme
+			result+=";b"
+		elif [[ "$conformiteCourant" == "1" ]] && [[ "$conformiteAutre" == "2" ]]; then
+			#le fichier p/A est conforme
+			result+=";b"
+		elif [[ "$conformiteCourant" == "2" ]] && [[ "$conformiteAutre" == "1" ]]; then
+			#le fichier p/B est conforme
+			result+=";a"
+		elif [[ "$conformiteCourant" == "2" ]] && [[ "$conformiteAutre" == "2" ]]; then
+			result+=";journal_incorrect"
+		elif [[ "$conformiteAutre" == "0" ]]; then
+			result+=";journal_incorrect"
+		fi
+	 else
+		if [[ "$conformiteCourant" == "1" ]] && [[ "$conformiteAutre" == "1" ]]; then
+			#le fichier p/A est conforme
+			result+=";a"
+		elif [[ "$conformiteCourant" == "1" ]] && [[ "$conformiteAutre" == "2" ]]; then
+			#le fichier p/A est conforme
+			result+=";a"
+		elif [[ "$conformiteCourant" == "2" ]] && [[ "$conformiteAutre" == "1" ]]; then
+			#le fichier p/B est conforme
+			result+=";b"
+		elif [[ "$conformiteCourant" == "2" ]] && [[ "$conformiteAutre" == "2" ]]; then
+			result+=";journal_incorrect"
+		elif [[ "$conformiteAutre" == "0" ]]; then
+			result+=";journal_incorrect"
+		fi
+fi
 
 	echo $result
 }
@@ -115,67 +179,100 @@ walk(){
 	#pour chaque élément du répertoire
 	for entry in "$1"/*; do
 
-		local eq_arbreB="${entry/$arbreA/$arbreB}" #on génère le chemin de l'élément équivalent dans l'arbre B
-
-        #si c'est un fichier on affiche son chemin
-        if [[ -f "$entry" ]]; then
-            printf "%*sF - %s\n" $indent '' "$entry"
-			#log_compare $entry
-			log_write $entry #TODO : n'est pas censé faire cela
-			#teste la présence de conflits
-			local compResult=$(compareFiles "$entry")
-			if [[ $compResult == *"conflit"* ]]; then
-
-				echo "$compResult"
-				#teste la présence d'un conflit de métadonnées
-				if [[ $compResult == *"meta_diff"* ]]; then
-
-					handleFileMetaConflict $compResult $entry $eq_arbreB
-
-				#teste la présence d'un conflit fichier/dossier
-				elif [[ $compResult == *"est_dossier"* ]]; then
-
-					handleFileNotFileConflict $compResult $entry $eq_arbreB
-
-				#teste la présence d'un conflit dû à un fichier/dossier inexistant
-				elif [[ $compResult == *"inexistant"* ]]; then
-
-					handleFileNotExistingConflict $compResult $entry $eq_arbreB
-
-				fi
+				recherche=1
+				estDansB=$(echo $entry | grep -c 'arbreB')
+				if [[ estDansB -ne 0 ]]; then
+				{
+					echo "ON EST DANS B :"
+						local eq_arbre="${entry/$arbreB/$arbreA}"
+					if [[ -f "$entry" ]]; then
+										{
+											rechercheLog=$(log_compare_temp "$entry")
+											if [[ $rechercheLog -eq '1' ]] ; then
+												{
+													echo "ON RECHERCHE PAS"
+												recherche=0
+												}
+												fi
+										} else
+										{
+											rechercheLog=$(log_compare_temp "$entry")
+											if [[ $rechercheLog -eq '1' ]] ; then
+												{
+													printf "%*sD - %s\n" $indent '' "$entry   ------ Deja vu dans A"
+													walk "$entry" $((indent+4))
+												recherche=0
+												}
+												fi
+										}
+									fi
+				} else
+				{
+							local eq_arbre="${entry/$arbreA/$arbreB}" #on génère le chemin de l'élément équivalent dans l'arbre B
+				}
 			fi
-		#s'il s'agit d'un dossier, on affiche et on descend dedans
-		elif [[ -d "$entry" ]]; then
-			printf "%*sD - %s\n" $indent '' "$entry"
-			log_write $entry #TODO : n'est pas censé faire cela
-			#teste la présence de conflits
-			local compResult=$(compareFolders "$entry")
 
-			if [[ $compResult == *"conflit"* ]]; then
+				if [[ $recherche -eq '1' ]]; then
+				{
+	        #si c'est un fichier on affiche son chemin
+	        if [[ -f "$entry" ]]; then
+	            printf "%*sF - %s\n" $indent '' "$entry"
+					#log_compare $
+					#TODO : n'est pas censé faire cela
+					#teste la présence de conflits
+					local compResult=$(compareFiles "$entry")
+					if [[ $compResult == *"conflit"* ]]; then
 
-				echo "$compResult"
-				#teste la présence d'un conflit de métadonnées
-				if [[ $compResult == *"meta_diff"* ]]; then
+						echo "$compResult"
+						#teste la présence d'un conflit de métadonnées
+						if [[ $compResult == *"meta_diff"* ]]; then
 
-					handleFolderMetaConflict $compResult $entry $eq_arbreB
+							handleFileMetaConflict $compResult $entry $eq_arbre
 
-				#teste la présence d'un conflit fichier/dossier
-				elif [[ $compResult == *"est_fichier"* ]]; then
+						#teste la présence d'un conflit fichier/dossier
+						elif [[ $compResult == *"est_dossier"* ]]; then
 
-					handleFolderNotFolderConflict $compResult $entry $eq_arbreB
+							handleFileNotFileConflict $compResult $entry $eq_arbre
 
-				#teste la présence d'un conflit dû à un dossier inexistant
-				elif [[ $compResult == *"inexistant"* ]]; then
+						#teste la présence d'un conflit dû à un fichier/dossier inexistant
+						elif [[ $compResult == *"inexistant"* ]]; then
+							handleFileNotExistingConflict $compResult $entry $eq_arbre
+						fi
+					else
+						log_write	$entry
+					fi
+			#s'il s'agit d'un dossier, on affiche et on descend dedans
+				elif [[ -d "$entry" ]]; then
+					printf "%*sD - %s\n" $indent '' "$entry"
+					#TODO : n'est pas censé faire cela
+					#teste la présence de conflits
+					local compResult=$(compareFolders "$entry")
 
-					handleFolderNotExistingConflict $compResult $entry $eq_arbreB
-				fi
+					if [[ $compResult == *"conflit"* ]]; then
+
+						echo "$compResult"
+						#teste la présence d'un conflit de métadonnées
+						if [[ $compResult == *"meta_diff"* ]]; then
+
+							handleFolderMetaConflict $compResult $entry $eq_arbre
+
+						#teste la présence d'un conflit fichier/dossier
+						elif [[ $compResult == *"est_fichier"* ]]; then
+
+							handleFolderNotFolderConflict $compResult $entry $eq_arbre
+
+						#teste la présence d'un conflit dû à un dossier inexistant
+						elif [[ $compResult == *"inexistant"* ]]; then
+
+							handleFolderNotExistingConflict $compResult $entry $eq_arbre
+						fi
+					else
+						log_write $entry
+					fi
+				#log_compare $entry
+				walk "$entry" $((indent+4))
 			fi
-			#log_compare $entry
-			walk "$entry" $((indent+4))
-		fi
-
-
-
+		} fi
 	done
 }
 
@@ -426,33 +523,62 @@ log_compare()
 			echo "0"  #Si on ne retrouve aucune information sur l'élément dans le fichier log, on renvoie 0
 		fi
 }
+
+log_compare_temp()
+{
+		local elemName=$(getFileRelativePath "$1")
+
+		if [[ $(grep -c "$elemName" log_temp) -ne 0 ]]; then #On regarde si une ligne correspond au nom de l'élément courant
+				if [[ -f "$1" ]]; then			#Selon si l'élément courant est un fichier ou un dossier, on lui donne la même structure que celle du fichier de log
+					currentFormatRecherche="f $elemName $(stat -c '%A%s%y' $1)"
+				elif [[ -d "$1" ]]; then
+					currentFormatRecherche="d $elemName $(stat -c '%A%s%y' $1)"
+				 fi
+			resultatDansBd=$(grep "$elemName" log_temp) #On récupère la ligne (théoriquement unique sans retouche manuelle) complète qui correspond à l'élément courant
+			if [[ "$currentFormatRecherche" == "$resultatDansBd" ]]; then
+				echo "1"   #Si les meta données concordent, on renvoie 1
+			fi
+		fi
+}
+
 #prend en paramètre la fonction a appeler pour résoudre le conflit (une fois la sélection faite)
 #mais aussi les 3 arguments de cette fonction (résultat de comparaison, fichier A et équivalent B)
 log_conflict_management()			#Fonction permettant la création d'un menu de gestion des conflits
-{	
-	
+{
+
 	local compResult=$2
 	local entry=$3
 	local eq_arbreB=$4
 
 	#echo "entry: $entry"
 	#echo "eq_arbreB: $eq_arbreB"
-	
+
 	printf "\n"
 	printf "\t ================================ Alerte ================================\n"
 	echo "Le journal ne correspond à aucune des 2 versions présentées, que faire ? [Tapez 1, 2 ou 3]"
+	echo "Arbre courant : "
+	estdDansB=$(echo $3 | grep -c "arbreB")
+	if [[ estDansB -ne 0 ]]; then
+	{
+		echo "B"
+	}
+else
+	{
+		echo "A"
+	}
+fi
 	local PS3='Votre sélection: '
-	local options=("Synchronisation selon l'arbre A" "Synchronisation selon l'arbre B" "Annuler l'opération en cours (pas de sync)")
+	local options=("Synchronisation selon l'arbre courant" "Synchronisation selon le second arbre" "Annuler l'opération en cours (pas de sync)")
 	local opt
 	select opt in "${options[@]}"
 	do
 			case $opt in
-					"Synchronisation selon l'arbre A")
+					"Synchronisation selon l'arbre courant")
 							#appel de la fonction qui gère le conflit, en précisant que A est conforme
 							$1 "${compResult/journal_incorrect/a}" "$entry" "$eq_arbreB"
 							break
 							;;
-					"Synchronisation selon l'arbre B")
+					"Synchronisation selon le second arbre")
 							#appel de la fonction qui gère le conflit, en précisant que B est conforme
 							$1 "${compResult/journal_incorrect/b}" "$entry" "$eq_arbreB"
 							break
@@ -509,4 +635,6 @@ clear
 echo "Synchronisation ..."
 #lance la boucle
 walk "$arbreA"
+echo "PASSAGE DANS B"
+walk "$arbreB"
 log_merge
