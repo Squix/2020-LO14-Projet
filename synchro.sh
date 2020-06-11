@@ -155,7 +155,9 @@ walk(){
 						fi
 					} else
 					{
-						echo "deja vu :"
+						printf "%*sD - %s\n" $indent '' "$entry   ------ Deja vu dans A"
+						walk "$entry" $((indent+4))
+						recherche=0
 					}
 				fi
 				}
