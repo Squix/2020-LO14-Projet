@@ -9,7 +9,7 @@ arbreA=""
 arbreB=""
 trap ctrl_c SIGINT
 
-function ctrl_c() {
+function cancelSync() {
 	printf "\n INTERRUPTION VOLONTAIRE DE L'UTILISATEUR \n"
 	 rm log_temp
 		exit 1
@@ -429,15 +429,15 @@ log_compare()
 #prend en paramètre la fonction a appeler pour résoudre le conflit (une fois la sélection faite)
 #mais aussi les 3 arguments de cette fonction (résultat de comparaison, fichier A et équivalent B)
 log_conflict_management()			#Fonction permettant la création d'un menu de gestion des conflits
-{
-
+{	
+	
 	local compResult=$2
 	local entry=$3
 	local eq_arbreB=$4
 
 	#echo "entry: $entry"
 	#echo "eq_arbreB: $eq_arbreB"
-
+	
 	printf "\n"
 	printf "\t ================================ Alerte ================================\n"
 	echo "Le journal ne correspond à aucune des 2 versions présentées, que faire ? [Tapez 1, 2 ou 3]"
