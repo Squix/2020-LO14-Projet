@@ -59,7 +59,6 @@ fi
 	fi
 
 	#on trouve quel est le fichier conforme au journal
-
 	local conformiteCourant=$(log_compare "$entry")
 	local conformiteAutre=$(log_compare "$eq_arbre")
 	#echo "confA: $conformiteA confB: $conformiteB"
@@ -70,7 +69,7 @@ fi
 	elif [[ "$conformiteCourant" == "2" ]] && [[ "$conformiteAutre" == "1" ]]; then
 		#le fichier p/B est conforme
 		result+=";b"
-	elif  [[ [["$conformiteCourant" == "2"]] && [["$conformiteAutre" == "2"]] ]]; then
+	elif  [[ "$conformiteCourant" == "2" ]] && [[ "$conformiteAutre" == "2" ]]; then
 		result+=";journal_incorrect"
 	fi
 
@@ -147,8 +146,9 @@ walk(){
 
 				if [[ -f "$entry" ]]; then
 					{
+						echo $(log_compare_temp "$entry")
 						rechercheLog=$(log_compare_temp "$entry")
-						if [[ $rechercheLog -eq 1 ]] ; then
+						if [[ $rechercheLog -eq '1' ]] ; then
 							{
 							recherche=0
 						}
@@ -167,7 +167,7 @@ walk(){
 				}
 			fi
 
-			if [[ $recherche -eq 1 ]] ; then
+			if [[ $recherche -eq '1' ]] ; then
 					{
 	        #si c'est un fichier on affiche son chemin
 	        if [[ -f "$entry" ]]; then
@@ -189,7 +189,6 @@ walk(){
 
 					#teste la présence d'un conflit dû à un fichier/dossier inexistant
 					elif [[ $compResult == *"inexistant"* ]]; then
-
 						handleFileNotExistingConflict $compResult $entry $eq_arbre
 
 					fi
@@ -217,7 +216,6 @@ walk(){
 
 					#teste la présence d'un conflit dû à un dossier inexistant
 					elif [[ $compResult == *"inexistant"* ]]; then
-
 						handleFolderNotExistingConflict $compResult $entry $eq_arbre
 					fi
 				else
@@ -251,6 +249,7 @@ handleFileMetaConflict() {
 	local entry=$2
 	local eq_arbreB=$3
 
+
 	#si le fichier conforme est celui de l'arbre A
 	if [[ "${1##*;}" == "a" ]]; then
 		#synchronize le fichier non conforme avec les données du fichier conforme
@@ -265,7 +264,7 @@ handleFileMetaConflict() {
 		#conflit fallacieux
 		log_conflict_management handleFileMetaConflict $compResult $entry $eq_arbreB
 	else
-		echo "ERREUR - la comparaison a échoué"
+		echo "AH ERREUR - la comparaison a échoué"
 	fi
 }
 
@@ -297,10 +296,10 @@ handleFileNotFileConflict() {
 }
 
 handleFileNotExistingConflict() {
-
 	local compResult=$1
 	local entry=$2
 	local eq_arbreB=$3
+
 
 	#si le fichier conforme est celui de l'arbre A
 	if [[ "${compResult##*;}" == "a" ]]; then
@@ -317,7 +316,6 @@ handleFileNotExistingConflict() {
 	else
 		echo "ERREUR - la comparaison a échoué"
 	fi
-
 }
 
 handleFolderMetaConflict() {
@@ -475,7 +473,7 @@ log_compare()
 				echo "2"		#Si les meta données ne sont pas concordes, on renvoie 2
 			fi
 		else	#Si aucune ligne ne correspond au fichier, on le signale
-			echo "0"  #Si on ne retrouve aucune information sur l'élément dans le fichier log, on renvoie 0
+			echo "2"  #Si on ne retrouve aucune information sur l'élément dans le fichier log, on renvoie 0
 		fi
 }
 log_compare_temp()
@@ -488,7 +486,7 @@ log_compare_temp()
 				elif [[ -d "$1" ]]; then
 					currentFormatRecherche="d $elemName $(stat -c '%A%s%y' $1)"
 				 fi
-			resultatDansBd=$(grep "$elemName " log_temp) #On récupère la ligne (théoriquement unique sans retouche manuelle) complète qui correspond à l'élément courant
+			resultatDansBd=$(grep "$elemName" log_temp) #On récupère la ligne (théoriquement unique sans retouche manuelle) complète qui correspond à l'élément courant
 			if [[ "$currentFormatRecherche" == "$resultatDansBd" ]]; then
 				echo "1"   #Si les meta données concordent, on renvoie 1
 			fi
