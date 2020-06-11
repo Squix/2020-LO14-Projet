@@ -458,7 +458,7 @@ log_conflict_management()			#Fonction permettant la création d'un menu de gesti
 							break
 							;;
 					"Annuler l'opération en cours (pas de sync)")
-							ctrl_c
+							cancelSync
 							;;
 					*) echo "Saisie invalide, recommencez $REPLY";;
 			esac
