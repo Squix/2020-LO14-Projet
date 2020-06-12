@@ -179,8 +179,8 @@ walk(){
 	#pour chaque élément du répertoire
 	for entry in "$1"/*; do
 
-				recherche=1
-				estDansB=$(echo $entry | grep -c 'arbreB')
+				local recherche=1
+				local estDansB=$(echo $entry | grep -c 'arbreB')
 				if [[ estDansB -ne 0 ]]; then
 				{
 					#echo "ON EST DANS B :"
@@ -238,7 +238,9 @@ walk(){
 							handleFileNotExistingConflict $compResult $entry $eq_arbre
 						fi
 					else
-						log_write	$entry
+				
+							log_write	$entry
+						
 					fi
 			#s'il s'agit d'un dossier, on affiche et on descend dedans
 				elif [[ -d "$entry" ]]; then
@@ -479,7 +481,6 @@ synchroReftoFolder() {
 #écrit le fichier passé en argument dans le journal
 log_write()
 {
-
 	local elemName=$(getFileRelativePath "$1")
 
 	#Si l'élément et un fichier, on ajoute f devant pour le représenter
