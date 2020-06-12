@@ -183,14 +183,14 @@ walk(){
 				estDansB=$(echo $entry | grep -c 'arbreB')
 				if [[ estDansB -ne 0 ]]; then
 				{
-					echo "ON EST DANS B :"
+					#echo "ON EST DANS B :"
 						local eq_arbre="${entry/$arbreB/$arbreA}"
 					if [[ -f "$entry" ]]; then
 										{
 											rechercheLog=$(log_compare_temp "$entry")
 											if [[ $rechercheLog -eq '1' ]] ; then
 												{
-													echo "ON RECHERCHE PAS"
+													#echo "ON RECHERCHE PAS"
 												recherche=0
 												}
 												fi
@@ -199,7 +199,7 @@ walk(){
 											rechercheLog=$(log_compare_temp "$entry")
 											if [[ $rechercheLog -eq '1' ]] ; then
 												{
-													printf "%*sD - %s\n" $indent '' "$entry   ------ Deja vu dans A"
+													#printf "%*sD - %s\n" $indent '' "$entry   ------ Deja vu dans A"
 													walk "$entry" $((indent+4))
 												recherche=0
 												}
@@ -217,13 +217,12 @@ walk(){
 	        #si c'est un fichier on affiche son chemin
 	        if [[ -f "$entry" ]]; then
 	            printf "%*sF - %s\n" $indent '' "$entry"
-					#log_compare $
-					#TODO : n'est pas censé faire cela
+				
 					#teste la présence de conflits
 					local compResult=$(compareFiles "$entry")
 					if [[ $compResult == *"conflit"* ]]; then
 
-						echo "$compResult"
+						#echo "$compResult"
 						#teste la présence d'un conflit de métadonnées
 						if [[ $compResult == *"meta_diff"* ]]; then
 
@@ -244,13 +243,13 @@ walk(){
 			#s'il s'agit d'un dossier, on affiche et on descend dedans
 				elif [[ -d "$entry" ]]; then
 					printf "%*sD - %s\n" $indent '' "$entry"
-					#TODO : n'est pas censé faire cela
+					
 					#teste la présence de conflits
 					local compResult=$(compareFolders "$entry")
 
 					if [[ $compResult == *"conflit"* ]]; then
 
-						echo "$compResult"
+						#echo "$compResult"
 						#teste la présence d'un conflit de métadonnées
 						if [[ $compResult == *"meta_diff"* ]]; then
 
@@ -556,17 +555,20 @@ log_conflict_management()			#Fonction permettant la création d'un menu de gesti
 	printf "\n"
 	printf "\t ================================ Alerte ================================\n"
 	echo "Le journal ne correspond à aucune des 2 versions présentées, que faire ? [Tapez 1, 2 ou 3]"
-	echo "Arbre courant : "
-	estdDansB=$(echo $3 | grep -c "arbreB")
+	local estdDansB=$(echo $3 | grep -c "arbreB")
 	if [[ estDansB -ne 0 ]]; then
 	{
-		echo "B"
+		estDansB="B"
 	}
 else
 	{
-		echo "A"
+		estDansB="A"
 	}
 fi
+	echo ""
+	echo " /// Arbre courant : $estDansB \\\\\\"
+	echo ""
+
 	local PS3='Votre sélection: '
 	local options=("Synchronisation selon l'arbre courant" "Synchronisation selon le second arbre" "Annuler l'opération en cours (pas de sync)")
 	local opt
@@ -633,8 +635,19 @@ else
 fi
 clear
 echo "Synchronisation ..."
+echo ""
+echo "==============="
+echo "PASSAGE DANS A"
+echo "==============="
+echo ""
 #lance la boucle
 walk "$arbreA"
+echo ""
+echo "==============="
 echo "PASSAGE DANS B"
+echo "==============="
+echo ""
 walk "$arbreB"
+echo ""
+echo "Synchronisation terminée."
 log_merge
