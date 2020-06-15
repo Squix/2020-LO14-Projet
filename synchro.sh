@@ -77,7 +77,7 @@ fi
 		elif [[ "$conformiteCourant" == "2" ]] && [[ "$conformiteAutre" == "2" ]]; then
 			result+=";journal_incorrect"
 		elif [[ "$conformiteAutre" == "0" ]]; then
-			result+=";journal_incorrect"
+			result+=";b"
 		fi
 	 else
 		if [[ "$conformiteCourant" == "1" ]] && [[ "$conformiteAutre" == "1" ]]; then
@@ -92,7 +92,7 @@ fi
 		elif [[ "$conformiteCourant" == "2" ]] && [[ "$conformiteAutre" == "2" ]]; then
 			result+=";journal_incorrect"
 		elif [[ "$conformiteAutre" == "0" ]]; then
-			result+=";journal_incorrect"
+			result+=";a"
 		fi
 fi
 	echo $result
@@ -151,7 +151,7 @@ fi
 		elif [[ "$conformiteCourant" == "2" ]] && [[ "$conformiteAutre" == "2" ]]; then
 			result+=";journal_incorrect"
 		elif [[ "$conformiteAutre" == "0" ]]; then
-			result+=";journal_incorrect"
+			result+=";b"
 		fi
 	 else
 		if [[ "$conformiteCourant" == "1" ]] && [[ "$conformiteAutre" == "1" ]]; then
@@ -166,7 +166,7 @@ fi
 		elif [[ "$conformiteCourant" == "2" ]] && [[ "$conformiteAutre" == "2" ]]; then
 			result+=";journal_incorrect"
 		elif [[ "$conformiteAutre" == "0" ]]; then
-			result+=";journal_incorrect"
+			result+=";a"
 		fi
 fi
 
@@ -251,7 +251,7 @@ walk(){
 
 					if [[ $compResult == *"conflit"* ]]; then
 
-						echo "$compResult"
+						#echo "$compResult"
 						#teste la présence d'un conflit de métadonnées
 						if [[ $compResult == *"meta_diff"* ]]; then
 
