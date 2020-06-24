@@ -282,7 +282,7 @@ getFileRelativePath() {
 
 	local elemName_temp=${1/$arbreA/} #supprime le chemin absolu de arbreA
 	local elemName=${elemName_temp/$arbreB/} #supprime le chemin absolu de arbreB (pour que ça marche quelque soit le fichier passé en argument)
-	echo "$elemName"
+	echo "$elemName"bite
 }
 
 # ---------------------------
